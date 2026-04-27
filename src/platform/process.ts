@@ -15,8 +15,8 @@ export const runCommand = ({ command, args, cwd }: RunCommandInput) => {
 
   return {
     exitCode: result.status ?? 1,
-    stdout: result.stdout.trim(),
-    stderr: result.stderr.trim(),
+    stdout: result.stdout,
+    stderr: result.stderr,
     error: result.error,
   };
 };
@@ -24,5 +24,5 @@ export const runCommand = ({ command, args, cwd }: RunCommandInput) => {
 export const commandOutput = (input: RunCommandInput) => {
   const result = runCommand(input);
 
-  return !result.exitCode ? result.stdout : "";
+  return !result.exitCode ? result.stdout.trim() : "";
 };

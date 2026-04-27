@@ -6,6 +6,10 @@ interface InstallInput {
   entryPath: string;
 }
 
+interface WritePluginInput {
+  entryPath: string;
+}
+
 interface CommandInput {
   entryPath: string;
   args: string[];
@@ -57,7 +61,9 @@ const claudeDir = () => join(homedir(), ".claude");
 const codexHooksPath = () => join(codexDir(), "hooks.json");
 const codexConfigPath = () => join(codexDir(), "config.toml");
 const claudeSettingsPath = () => join(claudeDir(), "settings.json");
-const maxmemStatusMarker = "maxmem statusline";
+const opencodePluginsDir = () => join(homedir(), ".config", "opencode", "plugins");
+const opencodePluginPath = () => join(opencodePluginsDir(), "maxmem.js");
+const maxmemStatusMarker = "'statusline' 'claude'";
 
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\"'\"'")}'`;
 
@@ -87,11 +93,29 @@ const writeText = (path: string, value: string) => {
 const hookExists = (groups: Array<CodexHookGroup | ClaudeHookGroup>, command: string) =>
   groups.some((group) => group.hooks.some((hook) => hook.command === command));
 
+const withoutMaxmemHook = <T extends CodexHookGroup | ClaudeHookGroup>(
+  groups: T[],
+  hookId: string,
+) =>
+  groups
+    .map((group) => ({
+      ...group,
+      hooks: group.hooks.filter((hook) => !hook.command.includes(hookId)),
+    }))
+    .filter((group) => group.hooks.length);
+
 const mergeHook = <T extends CodexHookGroup | ClaudeHookGroup>(
   groups: T[],
   group: T,
   command: string,
 ) => (hookExists(groups, command) ? groups : [...groups, group]);
+
+const replaceHook = <T extends CodexHookGroup | ClaudeHookGroup>(
+  groups: T[],
+  group: T,
+  command: string,
+  hookId: string,
+) => mergeHook(withoutMaxmemHook(groups, hookId), group, command);
 
 const enableCodexHooks = (content: string) => {
   if (content.match(/^codex_hooks\s*=\s*true$/m)) {
@@ -115,6 +139,32 @@ const enableCodexHooks = (content: string) => {
   return `${content.slice(0, insertIndex).trimEnd()}\ncodex_hooks = true\n${content.slice(insertIndex).trimStart()}`;
 };
 
+const opencodePlugin = ({ entryPath }: WritePluginInput) => {
+  const command = hookCommand({ entryPath, args: [] });
+
+  return [
+    "export const MaxMEMPlugin = async ({ $, directory, worktree }) => {",
+    "  const cwd = worktree ?? directory ?? process.cwd()",
+    "  const run = async (args) => $`MAXMEM_PLUGIN_CWD=${cwd} " + command + " ${args}`",
+    "",
+    "  return {",
+    "    'session.idle': async () => {",
+    "      await run(['hook', 'opencode-stop'])",
+    "    },",
+    "    'experimental.session.compacting': async (input, output) => {",
+    "      const context = await run(['inject']).quiet().text()",
+    "      if (context.trim()) output.context.push(context.trim())",
+    "    },",
+    "    'shell.env': async (input, output) => {",
+    "      output.env.MAXMEM_ACTIVE = '1'",
+    "      output.env.MAXMEM_REPO = cwd",
+    "    },",
+    "  }",
+    "}",
+    "",
+  ].join("\n");
+};
+
 export const installCodexHooks = ({ entryPath }: InstallInput) => {
   mkdirSync(codexDir(), { recursive: true });
 
@@ -126,7 +176,7 @@ export const installCodexHooks = ({ entryPath }: InstallInput) => {
   const stopGroups = hooks.Stop ?? [];
   const nextHooks = {
     ...hooks,
-    SessionStart: mergeHook(
+    SessionStart: replaceHook(
       sessionGroups,
       {
         matcher: "startup|resume|clear",
@@ -135,8 +185,9 @@ export const installCodexHooks = ({ entryPath }: InstallInput) => {
         ],
       },
       sessionCommand,
+      "codex-session-start",
     ),
-    Stop: mergeHook(
+    Stop: replaceHook(
       stopGroups,
       {
         hooks: [
@@ -149,6 +200,7 @@ export const installCodexHooks = ({ entryPath }: InstallInput) => {
         ],
       },
       stopCommand,
+      "codex-stop",
     ),
   };
   const existingConfig = existsSync(codexConfigPath())
@@ -174,9 +226,8 @@ export const installClaudeHooks = ({ entryPath }: InstallInput) => {
   const hooks = settings.hooks ?? {};
   const sessionGroups = hooks.SessionStart ?? [];
   const stopGroups = hooks.Stop ?? [];
-  const statusLine = settings.statusLine?.command?.includes(maxmemStatusMarker)
-    ? settings.statusLine
-    : settings.statusLine
+  const statusLine =
+    settings.statusLine?.command && !settings.statusLine.command.includes(maxmemStatusMarker)
       ? settings.statusLine
       : { type: "command" as const, command: statusCommand, padding: 1, refreshInterval: 5 };
 
@@ -184,7 +235,7 @@ export const installClaudeHooks = ({ entryPath }: InstallInput) => {
     ...settings,
     hooks: {
       ...hooks,
-      SessionStart: mergeHook(
+      SessionStart: replaceHook(
         sessionGroups,
         {
           matcher: "startup|resume|clear|compact",
@@ -193,8 +244,9 @@ export const installClaudeHooks = ({ entryPath }: InstallInput) => {
           ],
         },
         sessionCommand,
+        "claude-session-start",
       ),
-      Stop: mergeHook(
+      Stop: replaceHook(
         stopGroups,
         {
           hooks: [
@@ -207,6 +259,7 @@ export const installClaudeHooks = ({ entryPath }: InstallInput) => {
           ],
         },
         stopCommand,
+        "claude-stop",
       ),
     },
     statusLine,
@@ -220,7 +273,15 @@ export const installClaudeHooks = ({ entryPath }: InstallInput) => {
     : [`Installed Claude hooks in ${claudeSettingsPath()}`, "Installed maxMEM Claude status line"];
 };
 
+export const installOpenCodePlugin = ({ entryPath }: InstallInput) => {
+  mkdirSync(opencodePluginsDir(), { recursive: true });
+  writeText(opencodePluginPath(), opencodePlugin({ entryPath }));
+
+  return [`Installed OpenCode plugin in ${opencodePluginPath()}`];
+};
+
 export const installAllHooks = ({ entryPath }: InstallInput) => [
   ...installCodexHooks({ entryPath }),
   ...installClaudeHooks({ entryPath }),
+  ...installOpenCodePlugin({ entryPath }),
 ];

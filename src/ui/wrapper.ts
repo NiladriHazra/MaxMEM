@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { createInterface } from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
-import type { Agent } from "./types";
-import { createCapsule, renderCapsule } from "./capsule";
-import { getGitContext } from "./git";
-import { getLatestCapsule } from "./store";
+import { stdin as input } from "node:process";
+import { createCapsule, getInjectionContext, renderCapsule } from "../core/capsule";
+import { getGitContext } from "../core/git";
+import { getLatestCapsule } from "../core/store";
+import type { Agent } from "../core/types";
+import { ask, selectExportOptions } from "./prompts";
+import { renderTopBar } from "./topBar";
 
 export interface RunWrapperInput {
   agent: Agent;
@@ -41,11 +42,11 @@ const renderBanner = ({ agent, cwd }: BannerInput) => {
     ? `handoff ${new Date(capsule.createdAt).toLocaleString()}`
     : "no handoff yet";
   const repo = git.isRepo ? git.repoRoot.split("/").at(-1) : git.repoRoot;
+  const status = git.changedFiles.length ? `${git.changedFiles.length} changed` : "clean";
 
   return [
-    "",
-    `maxMEM | ${repo} | ${git.branch} | ${label[agent]} | ${synced}`,
-    "[Enter] launch  [h] save handoff  [v] view latest  [q] quit",
+    renderTopBar({ agent, repo: repo ?? git.repoRoot, branch: git.branch, status, synced }),
+    "[Enter] launch  [h] handoff  [s] selective  [i] inject  [v] view  [q] quit",
     "",
   ].join("\n");
 };
@@ -55,11 +56,7 @@ const readChoice = async () => {
     return "";
   }
 
-  const rl = createInterface({ input, output });
-  const answer = await rl.question("maxMEM> ");
-  rl.close();
-
-  return answer.trim().toLowerCase();
+  return (await ask({ prompt: "maxMEM> " })).toLowerCase();
 };
 
 const handleChoice = async ({ agent, cwd }: PromptChoiceInput) => {
@@ -72,6 +69,23 @@ const handleChoice = async ({ agent, cwd }: PromptChoiceInput) => {
   if (choice === "h") {
     const capsule = createCapsule({ agent, cwd, goal: `Continue work from ${label[agent]}.` });
     console.log(renderCapsule({ capsule }));
+    return true;
+  }
+
+  if (choice === "s") {
+    const options = await selectExportOptions();
+    const capsule = createCapsule({
+      agent,
+      cwd,
+      goal: `Continue work from ${label[agent]}.`,
+      options,
+    });
+    console.log(renderCapsule({ capsule, options }));
+    return true;
+  }
+
+  if (choice === "i") {
+    console.log(getInjectionContext({ cwd }) || "No handoff capsule found for this repo.");
     return true;
   }
 

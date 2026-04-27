@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="260" viewBox="0 0 920 260" role="img" aria-label="MaxMEM wrapper screenshot">
+  <rect width="920" height="260" fill="#101114"/>
+  <rect x="32" y="32" width="856" height="196" rx="8" fill="#050607" stroke="#2d323a"/>
+  <rect x="32" y="32" width="856" height="34" rx="8" fill="#f2f2f2"/>
+  <text x="52" y="55" font-family="Menlo, Consolas, monospace" font-size="15" fill="#111111">maxMEM  MaxMEM  main</text>
+  <text x="640" y="55" font-family="Menlo, Consolas, monospace" font-size="15" fill="#111111">Claude Code  clean  handoff 2m ago</text>
+  <text x="52" y="108" font-family="Menlo, Consolas, monospace" font-size="15" fill="#d7dde8">[Enter] launch  [h] handoff  [s] selective  [i] inject  [v] view  [q] quit</text>
+  <text x="52" y="150" font-family="Menlo, Consolas, monospace" font-size="15" fill="#7dd3fc">maxMEM&gt;</text>
+  <text x="132" y="150" font-family="Menlo, Consolas, monospace" font-size="15" fill="#d7dde8">s</text>
+  <text x="52" y="190" font-family="Menlo, Consolas, monospace" font-size="15" fill="#a3e635">Include raw chat snippets? (y/N)</text>
+</svg>

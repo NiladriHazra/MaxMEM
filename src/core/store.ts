@@ -33,8 +33,11 @@ interface CapsuleRow {
   commands_json: string;
   decisions_json: string;
   blockers_json: string;
+  raw_chat_json: string;
+  transcript_path: string;
   next_prompt: string;
   git_json: string;
+  privacy_json: string;
   created_at: string;
 }
 
@@ -49,40 +52,54 @@ interface SessionRow {
   updated_at: string;
 }
 
-const schema = `
-create table if not exists sessions (
-  id text primary key,
-  agent text not null,
-  cwd text not null,
-  repo_root text not null,
-  branch text not null,
-  transcript_path text not null,
-  created_at text not null,
-  updated_at text not null
-);
+const schemaStatements = [
+  `
+  create table if not exists sessions (
+    id text primary key,
+    agent text not null,
+    cwd text not null,
+    repo_root text not null,
+    branch text not null,
+    transcript_path text not null,
+    created_at text not null,
+    updated_at text not null
+  )
+  `,
+  `
+  create table if not exists capsules (
+    id text primary key,
+    repo_root text not null,
+    branch text not null,
+    source_agent text not null,
+    goal text not null,
+    summary text not null,
+    files_json text not null,
+    commands_json text not null,
+    decisions_json text not null,
+    blockers_json text not null,
+    raw_chat_json text not null default '[]',
+    transcript_path text not null default '',
+    next_prompt text not null,
+    git_json text not null,
+    privacy_json text not null default '{"includeRawChat":false,"redacted":true}',
+    created_at text not null
+  )
+  `,
+  `
+  create index if not exists capsules_repo_branch_created_at
+  on capsules (repo_root, branch, created_at)
+  `,
+  `
+  create index if not exists sessions_repo_agent_updated_at
+  on sessions (repo_root, agent, updated_at)
+  `,
+];
 
-create table if not exists capsules (
-  id text primary key,
-  repo_root text not null,
-  branch text not null,
-  source_agent text not null,
-  goal text not null,
-  summary text not null,
-  files_json text not null,
-  commands_json text not null,
-  decisions_json text not null,
-  blockers_json text not null,
-  next_prompt text not null,
-  git_json text not null,
-  created_at text not null
-);
-
-create index if not exists capsules_repo_branch_created_at
-on capsules (repo_root, branch, created_at);
-
-create index if not exists sessions_repo_agent_updated_at
-on sessions (repo_root, agent, updated_at);
-`;
+const migrations = [
+  "alter table capsules add column raw_chat_json text not null default '[]'",
+  "alter table capsules add column transcript_path text not null default ''",
+  'alter table capsules add column privacy_json text not null default \'{"includeRawChat":false,"redacted":true}\'',
+];
 
 export const dataDirectory = () => process.env.MAXMEM_DATA_DIR ?? join(homedir(), ".maxmem");
 
@@ -90,7 +107,15 @@ export const openStore = () => {
   mkdirSync(dataDirectory(), { recursive: true });
 
   const db = new Database(join(dataDirectory(), "maxmem.sqlite"));
-  db.exec(schema);
+  db.exec("pragma busy_timeout = 5000");
+  schemaStatements.map((statement) => db.exec(statement));
+  migrations.map((migration) => {
+    try {
+      db.exec(migration);
+    } catch {
+      return;
+    }
+  });
 
   return db;
 };
@@ -106,8 +131,11 @@ const rowToCapsule = (row: CapsuleRow) => ({
   commands: JSON.parse(row.commands_json) as string[],
   decisions: JSON.parse(row.decisions_json) as string[],
   blockers: JSON.parse(row.blockers_json) as string[],
+  rawChat: JSON.parse(row.raw_chat_json) as string[],
+  transcriptPath: row.transcript_path,
   nextPrompt: row.next_prompt,
   git: JSON.parse(row.git_json) as HandoffCapsule["git"],
+  privacy: JSON.parse(row.privacy_json) as HandoffCapsule["privacy"],
   createdAt: row.created_at,
 });
 
@@ -156,8 +184,9 @@ export const saveCapsule = ({ capsule }: SaveCapsuleInput) => {
   db.query(`
     insert into capsules (
       id, repo_root, branch, source_agent, goal, summary, files_json,
-      commands_json, decisions_json, blockers_json, next_prompt, git_json, created_at
-    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      commands_json, decisions_json, blockers_json, raw_chat_json, transcript_path,
+      next_prompt, git_json, privacy_json, created_at
+    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     capsule.id,
     capsule.repoRoot,
@@ -169,8 +198,11 @@ export const saveCapsule = ({ capsule }: SaveCapsuleInput) => {
     JSON.stringify(capsule.commands),
     JSON.stringify(capsule.decisions),
     JSON.stringify(capsule.blockers),
+    JSON.stringify(capsule.rawChat),
+    capsule.transcriptPath,
     capsule.nextPrompt,
     JSON.stringify(capsule.git),
+    JSON.stringify(capsule.privacy),
     capsule.createdAt,
   );
 

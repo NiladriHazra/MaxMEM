@@ -1,13 +1,22 @@
 #!/usr/bin/env bun
 import { fileURLToPath } from "node:url";
-import { createCapsule, getInjectionContext, renderCapsule } from "./capsule";
-import { copyText } from "./clipboard";
-import { handleClaudeStatusLine, handleSessionStartHook, handleStopHook } from "./hooks";
-import { installAllHooks, installClaudeHooks, installCodexHooks } from "./installers";
-import { hasFlag, optionValue } from "./options";
-import { showStatus } from "./status";
-import type { Agent } from "./types";
-import { runWrapper } from "./wrapper";
+import { runHandoffCommand } from "../commands/handoff";
+import { showStatus } from "../commands/status";
+import { getInjectionContext } from "../core/capsule";
+import type { Agent } from "../core/types";
+import {
+  handleClaudeStatusLine,
+  handleSessionStartHook,
+  handleStopHook,
+} from "../integrations/hooks";
+import {
+  installAllHooks,
+  installClaudeHooks,
+  installCodexHooks,
+  installOpenCodePlugin,
+} from "../integrations/installers";
+import { runWrapper } from "../ui/wrapper";
+import { hasFlag } from "./options";
 
 interface CommandInput {
   command: string | undefined;
@@ -16,6 +25,10 @@ interface CommandInput {
 
 interface AgentCommandInput {
   command: string;
+  args: string[];
+}
+
+interface ArgsInput {
   args: string[];
 }
 
@@ -33,9 +46,9 @@ const printHelp = () => {
       "  maxmem codex [args...]",
       "  maxmem claude [args...]",
       "  maxmem opencode [args...]",
-      "  maxmem handoff [--agent codex|claude|opencode] [--goal text] [--copy]",
+      "  maxmem handoff [--agent codex|claude|opencode] [--goal text] [--copy] [--select]",
       "  maxmem inject",
-      "  maxmem install-hooks [codex|claude|all]",
+      "  maxmem install-hooks [codex|claude|opencode|all]",
       "  maxmem status [--verbose]",
       "",
       "MaxMEM stores compact handoff capsules locally and avoids raw chat export by default.",
@@ -43,37 +56,16 @@ const printHelp = () => {
   );
 };
 
-const selectedAgent = (args: string[]) => {
-  const value = optionValue({ args, name: "agent" });
-
-  return value && isAgent(value) ? (value as Agent) : "codex";
-};
-
-const handoff = ({ args }: { args: string[] }) => {
-  const goal = optionValue({ args, name: "goal" });
-  const capsule = createCapsule({
-    agent: selectedAgent(args),
-    cwd: process.cwd(),
-    ...(goal ? { goal } : {}),
-  });
-  const rendered = renderCapsule({ capsule });
-
-  if (hasFlag({ args, name: "copy" })) {
-    console.log(copyText({ text: rendered }) ? "Copied handoff capsule to clipboard." : rendered);
-    return;
-  }
-
-  console.log(rendered);
-};
-
-const installHooks = ({ args }: { args: string[] }) => {
+const installHooks = ({ args }: ArgsInput) => {
   const target = args.at(0) ?? "all";
   const messages =
     target === "codex"
       ? installCodexHooks({ entryPath })
       : target === "claude"
         ? installClaudeHooks({ entryPath })
-        : installAllHooks({ entryPath });
+        : target === "opencode"
+          ? installOpenCodePlugin({ entryPath })
+          : installAllHooks({ entryPath });
 
   messages.map((message) => console.log(message));
 };
@@ -87,7 +79,7 @@ const runAgent = async ({ command, args }: AgentCommandInput) => {
   return runWrapper({ agent: command as Agent, args, cwd: process.cwd() });
 };
 
-const runHook = async ({ args }: { args: string[] }) => {
+const runHook = async ({ args }: ArgsInput) => {
   const hook = args.at(0);
 
   if (hook === "codex-session-start") {
@@ -107,10 +99,15 @@ const runHook = async ({ args }: { args: string[] }) => {
 
   if (hook === "claude-stop") {
     await handleStopHook({ agent: "claude" });
+    return;
+  }
+
+  if (hook === "opencode-stop") {
+    await handleStopHook({ agent: "opencode" });
   }
 };
 
-const runStatusLine = async ({ args }: { args: string[] }) => {
+const runStatusLine = async ({ args }: ArgsInput) => {
   if (args.at(0) === "claude") {
     await handleClaudeStatusLine();
   }
@@ -127,7 +124,7 @@ const main = async ({ command, args }: CommandInput) => {
   }
 
   if (command === "handoff") {
-    handoff({ args });
+    await runHandoffCommand({ args, cwd: process.cwd() });
     return 0;
   }
 

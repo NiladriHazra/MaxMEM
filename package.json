@@ -3,14 +3,24 @@
   "version": "0.1.0",
   "description": "Local-first handoff capsules for Codex, Claude Code, and OpenCode.",
   "bin": {
-    "maxmem": "./src/cli.ts"
+    "maxmem": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "documentation",
+    "media"
+  ],
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "bun build src/cli.ts --target bun --outdir dist",
-    "dev": "bun src/cli.ts",
+    "build": "bun build src/main.ts --target bun --outfile dist/cli.js",
+    "dev": "bun src/main.ts",
     "format": "bunx oxfmt --write .",
     "lint": "bunx oxlint .",
+    "prepack": "bun run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

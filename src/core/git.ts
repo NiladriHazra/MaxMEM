@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { commandOutput, runCommand } from "./process";
+import { commandOutput, runCommand } from "../platform/process";
 
 export interface GetGitContextInput {
   cwd: string;
@@ -19,6 +19,8 @@ const lines = (value: string) =>
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+
+const statusLines = (value: string) => value.split("\n").filter(Boolean);
 
 const changedFileFromStatus = (line: string) =>
   line.slice(3).trim().split(" -> ").at(-1) ?? line.slice(3).trim();
@@ -42,7 +44,7 @@ export const getGitContext = ({ cwd }: GetGitContextInput) => {
     return noRepoContext({ cwd });
   }
 
-  const status = lines(gitOutput({ cwd, args: ["status", "--short"] }));
+  const status = statusLines(git({ cwd, args: ["status", "--short"] }).stdout);
   const branch = gitOutput({ cwd, args: ["branch", "--show-current"] }) || "detached";
   const head = gitOutput({ cwd, args: ["rev-parse", "--short", "HEAD"] });
   const diffStat = gitOutput({ cwd, args: ["diff", "--stat"] });
@@ -51,7 +53,7 @@ export const getGitContext = ({ cwd }: GetGitContextInput) => {
 
   return {
     cwd,
-    repoRoot: root.stdout,
+    repoRoot: root.stdout.trim(),
     isRepo: true,
     branch,
     head,

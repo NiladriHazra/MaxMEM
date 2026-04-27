@@ -1,6 +1,6 @@
-import { getGitContext } from "./git";
-import { getLatestCapsule, getLatestSession } from "./store";
-import { renderCapsule } from "./capsule";
+import { renderCapsule } from "../core/capsule";
+import { getGitContext } from "../core/git";
+import { getLatestCapsule, getLatestSession } from "../core/store";
 
 export interface ShowStatusInput {
   cwd: string;

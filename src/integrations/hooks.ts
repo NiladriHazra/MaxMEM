@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import type { Agent } from "./types";
-import { createCapsule, getInjectionContext } from "./capsule";
-import { getGitContext } from "./git";
-import { saveSession } from "./store";
+import { createCapsule, getInjectionContext } from "../core/capsule";
+import { getGitContext } from "../core/git";
+import { saveSession } from "../core/store";
+import type { Agent } from "../core/types";
 
 export interface HookHandlerInput {
   agent: Agent;
@@ -33,10 +33,23 @@ interface StatusLineInput {
   };
 }
 
-const readHookInput = async <T>() => JSON.parse(await Bun.stdin.text()) as T;
+interface SaveHookSessionInput {
+  input: SessionHookInput;
+  agent: Agent;
+}
+
+const readHookInput = async <T>() => {
+  const text = await Bun.stdin.text();
+
+  return text.trim() ? (JSON.parse(text) as T) : ({} as T);
+};
 
 const cwdFromHook = (input: SessionHookInput | StatusLineInput) =>
-  input.cwd ?? input.workspace?.current_dir ?? input.workspace?.project_dir ?? process.cwd();
+  process.env.MAXMEM_PLUGIN_CWD ??
+  input.cwd ??
+  input.workspace?.current_dir ??
+  input.workspace?.project_dir ??
+  process.cwd();
 
 const jsonOutput = (additionalContext: string) => ({
   hookSpecificOutput: {
@@ -45,7 +58,7 @@ const jsonOutput = (additionalContext: string) => ({
   },
 });
 
-const saveHookSession = ({ input, agent }: { input: SessionHookInput; agent: Agent }) => {
+const saveHookSession = ({ input, agent }: SaveHookSessionInput) => {
   const cwd = cwdFromHook(input);
   const git = getGitContext({ cwd });
   const timestamp = new Date().toISOString();
@@ -80,7 +93,12 @@ export const handleStopHook = async ({ agent }: HookHandlerInput) => {
   const input = await readHookInput<SessionHookInput>();
   const cwd = cwdFromHook(input);
 
-  createCapsule({ agent, cwd, goal: `Continue work from the last ${agent} session.` });
+  createCapsule({
+    agent,
+    cwd,
+    goal: `Continue work from the last ${agent} session.`,
+    ...(input.transcript_path ? { transcriptPath: input.transcript_path } : {}),
+  });
 };
 
 export const handleClaudeStatusLine = async () => {

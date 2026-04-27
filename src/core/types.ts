@@ -1,5 +1,7 @@
 export type Agent = "codex" | "claude" | "opencode";
 
+export type CapsuleSection = "files" | "commands" | "decisions" | "blockers" | "rawChat";
+
 export interface GitContext {
   cwd: string;
   repoRoot: string;
@@ -10,6 +12,30 @@ export interface GitContext {
   changedFiles: string[];
   diffStat: string;
   recentCommits: string[];
+}
+
+export interface HandoffPrivacy {
+  includeRawChat: boolean;
+  redacted: boolean;
+}
+
+export interface TranscriptSummary {
+  path: string;
+  userMessages: string[];
+  assistantMessages: string[];
+  commands: string[];
+  files: string[];
+  decisions: string[];
+  blockers: string[];
+  rawChat: string[];
+}
+
+export interface ExportOptions {
+  files: boolean;
+  commands: boolean;
+  decisions: boolean;
+  blockers: boolean;
+  rawChat: boolean;
 }
 
 export interface HandoffCapsule {
@@ -23,8 +49,11 @@ export interface HandoffCapsule {
   commands: string[];
   decisions: string[];
   blockers: string[];
+  rawChat: string[];
+  transcriptPath: string;
   nextPrompt: string;
   git: GitContext;
+  privacy: HandoffPrivacy;
   createdAt: string;
 }
 
