@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { runHandoffCommand } from "../commands/handoff";
 import { showStatus } from "../commands/status";
+import { isAgent } from "../core/agents";
 import { getInjectionContext } from "../core/capsule";
 import type { Agent } from "../core/types";
 import {
@@ -32,10 +34,7 @@ interface ArgsInput {
   args: string[];
 }
 
-const entryPath = fileURLToPath(import.meta.url);
-const agents = ["codex", "claude", "opencode"] as const;
-
-const isAgent = (value: string) => agents.some((agent) => agent === value);
+const entryPath = resolve(process.argv[1] ?? fileURLToPath(import.meta.url));
 
 const printHelp = () => {
   console.log(

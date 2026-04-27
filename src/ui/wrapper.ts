@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { stdin as input } from "node:process";
+import { agentCommands, agentLabels } from "../core/agents";
 import { createCapsule, getInjectionContext, renderCapsule } from "../core/capsule";
 import { getGitContext } from "../core/git";
 import { getLatestCapsule } from "../core/store";
@@ -22,18 +23,6 @@ interface PromptChoiceInput {
   agent: Agent;
   cwd: string;
 }
-
-const agentCommand: Record<Agent, string> = {
-  codex: "codex",
-  claude: "claude",
-  opencode: "opencode",
-};
-
-const label: Record<Agent, string> = {
-  codex: "Codex",
-  claude: "Claude Code",
-  opencode: "OpenCode",
-};
 
 const renderBanner = ({ agent, cwd }: BannerInput) => {
   const git = getGitContext({ cwd });
@@ -67,7 +56,11 @@ const handleChoice = async ({ agent, cwd }: PromptChoiceInput) => {
   }
 
   if (choice === "h") {
-    const capsule = createCapsule({ agent, cwd, goal: `Continue work from ${label[agent]}.` });
+    const capsule = createCapsule({
+      agent,
+      cwd,
+      goal: `Continue work from ${agentLabels[agent]}.`,
+    });
     console.log(renderCapsule({ capsule }));
     return true;
   }
@@ -77,7 +70,7 @@ const handleChoice = async ({ agent, cwd }: PromptChoiceInput) => {
     const capsule = createCapsule({
       agent,
       cwd,
-      goal: `Continue work from ${label[agent]}.`,
+      goal: `Continue work from ${agentLabels[agent]}.`,
       options,
     });
     console.log(renderCapsule({ capsule, options }));
@@ -108,14 +101,16 @@ export const runWrapper = async ({ agent, args, cwd }: RunWrapperInput) => {
     return 0;
   }
 
-  const result = spawnSync(agentCommand[agent], args, {
+  const result = spawnSync(agentCommands[agent], args, {
     cwd,
     env: { ...process.env, MAXMEM_AGENT: agent, MAXMEM_WRAPPER: "1" },
     stdio: "inherit",
   });
 
   if (result.error) {
-    console.error(`Could not launch ${agentCommand[agent]}. Install it or run the agent directly.`);
+    console.error(
+      `Could not launch ${agentCommands[agent]}. Install it or run the agent directly.`,
+    );
     return 1;
   }
 

@@ -6,7 +6,6 @@ MaxMEM ships as a wrapper plus hook/plugin installer:
 
 ```sh
 bun install
-bun run build
 bun link
 maxmem install-hooks
 bun run dev codex
@@ -18,7 +17,10 @@ For local development:
 
 ```sh
 bun run dev handoff --select
+bun run build
 ```
+
+There is no committed `dist/cli.js`. The package bin is a tiny Bun shim in `bin/maxmem`, and the readable implementation lives in `src`.
 
 ## Commands
 

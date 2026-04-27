@@ -1,4 +1,5 @@
 import { createCapsule, defaultExportOptions, renderCapsule } from "../core/capsule";
+import { isAgent } from "../core/agents";
 import type { Agent, ExportOptions } from "../core/types";
 import { copyText } from "../platform/clipboard";
 import { hasFlag, optionValue } from "../cli/options";
@@ -8,10 +9,6 @@ export interface HandoffCommandInput {
   args: string[];
   cwd: string;
 }
-
-const agents = ["codex", "claude", "opencode"] as const;
-
-const isAgent = (value: string) => agents.some((agent) => agent === value);
 
 const selectedAgent = (args: string[]) => {
   const value = optionValue({ args, name: "agent" });
