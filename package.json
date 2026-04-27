@@ -1,0 +1,23 @@
+{
+  "name": "maxmem",
+  "version": "0.1.0",
+  "description": "Local-first handoff capsules for Codex, Claude Code, and OpenCode.",
+  "bin": {
+    "maxmem": "./src/cli.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/cli.ts --target bun --outdir dist",
+    "dev": "bun src/cli.ts",
+    "format": "bunx oxfmt --write .",
+    "lint": "bunx oxlint .",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "oxfmt": "latest",
+    "oxlint": "latest",
+    "typescript": "latest"
+  }
+}
