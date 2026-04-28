@@ -1,0 +1,127 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { agentFromValue } from "../core/agents";
+import { createCapsule, renderCapsule } from "../core/capsule";
+import { getGitContext } from "../core/git";
+import { launchAgent } from "../core/launch";
+import { getLatestCapsule, getLatestSession, listCapsules, listSessions } from "../core/store";
+import type { HandoffCapsule } from "../core/types";
+
+interface JsonResponseInput {
+  value: unknown;
+  status?: number;
+}
+
+interface CompanionRequestInput {
+  request: Request;
+  url: URL;
+  cwd: string;
+  entryPath: string;
+}
+
+interface CompanionRequestBody {
+  agent?: string;
+  cwd?: string;
+  goal?: string;
+  verbosity?: string;
+}
+
+interface CapsuleSummaryInput {
+  capsule: HandoffCapsule;
+}
+
+const jsonResponse = ({ value, status = 200 }: JsonResponseInput) =>
+  new Response(JSON.stringify(value, null, 2), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
+
+const requestBody = async (request: Request) =>
+  request.headers.get("content-type")?.includes("application/json")
+    ? ((await request.json()) as CompanionRequestBody)
+    : {};
+
+const safeCwd = (cwd: string, requested?: string) => {
+  const target = requested ? resolve(requested) : cwd;
+
+  return existsSync(target) ? target : cwd;
+};
+
+const capsuleSummary = ({ capsule }: CapsuleSummaryInput) => ({
+  id: capsule.id,
+  repoRoot: capsule.repoRoot,
+  branch: capsule.branch,
+  sourceAgent: capsule.sourceAgent,
+  goal: capsule.goal,
+  summary: capsule.summary,
+  createdAt: capsule.createdAt,
+  nextPrompt: capsule.nextPrompt,
+  rendered: renderCapsule({ capsule }),
+});
+
+const statePayload = (cwd: string) => {
+  const git = getGitContext({ cwd });
+  const capsules = listCapsules({ repoRoot: git.repoRoot, branch: git.branch });
+  const latest = getLatestCapsule({ repoRoot: git.repoRoot, branch: git.branch });
+
+  return {
+    status: {
+      cwd: git.cwd,
+      repoRoot: git.repoRoot,
+      branch: git.branch,
+      changedFiles: git.changedFiles,
+      recentCommits: git.recentCommits,
+      latestSession: getLatestSession({ repoRoot: git.repoRoot }),
+    },
+    sessions: listSessions({ repoRoot: git.repoRoot }),
+    latest: latest ? capsuleSummary({ capsule: latest }) : undefined,
+    capsules: capsules.map((capsule) => capsuleSummary({ capsule })),
+  };
+};
+
+const handoffResponse = async ({ request, cwd }: CompanionRequestInput) => {
+  const body = await requestBody(request);
+  const agent = agentFromValue({ value: body.agent });
+  const capsule = createCapsule({
+    agent,
+    cwd: safeCwd(cwd, body.cwd),
+    ...(body.goal ? { goal: body.goal } : {}),
+    ...(body.verbosity ? { verbosity: body.verbosity } : {}),
+  });
+
+  return jsonResponse({ value: capsuleSummary({ capsule }) });
+};
+
+const launchResponse = async ({ request, cwd, entryPath }: CompanionRequestInput) => {
+  const body = await requestBody(request);
+  const agent = agentFromValue({ value: body.agent });
+  const result = launchAgent({
+    agent,
+    cwd: safeCwd(cwd, body.cwd),
+    entryPath,
+    sourceAgent: agent,
+    ...(body.goal ? { goal: body.goal } : {}),
+  });
+
+  return jsonResponse({ value: result, status: result.ok ? 200 : 500 });
+};
+
+export const handleCompanionRequest = async (input: CompanionRequestInput) => {
+  const { request, url, cwd } = input;
+
+  if (url.pathname === "/api/state") {
+    return jsonResponse({
+      value: statePayload(safeCwd(cwd, url.searchParams.get("cwd") ?? undefined)),
+    });
+  }
+
+  if (url.pathname === "/api/handoff" && request.method === "POST") {
+    return handoffResponse(input);
+  }
+
+  if (url.pathname === "/api/launch" && request.method === "POST") {
+    return launchResponse(input);
+  }
+
+  return jsonResponse({ value: { error: "Not found" }, status: 404 });
+};
