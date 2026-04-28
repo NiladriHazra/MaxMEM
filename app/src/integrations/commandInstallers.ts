@@ -33,6 +33,7 @@ const commandList = () =>
     "MaxMEM commands:",
     "",
     "- maxmem-handoff: create a compact handoff capsule for the current repository.",
+    "- maxmem-memory: list or save durable project memory.",
     "- maxmem-companion: open the local MaxMEM companion UI.",
     "- maxmem-codex: create a handoff and launch Codex.",
     "- maxmem-claude: create a handoff and launch Claude Code.",
@@ -87,6 +88,23 @@ const claudeCompanionCommand = ({ entryPath }: InstallInput) =>
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} companion`,
+    "```",
+  ].join("\n");
+
+const memoryCommand = ({ entryPath }: InstallInput) =>
+  [
+    commandFrontmatter({
+      description: "List or save MaxMEM project memory",
+      allowedTools: ["Bash"],
+    }),
+    "# maxmem-memory",
+    "",
+    "List MaxMEM project memory, or save a note when arguments are provided.",
+    "",
+    "Run this shell command immediately:",
+    "",
+    "```sh",
+    `${shellQuote(process.execPath)} ${shellQuote(entryPath)} memory $ARGUMENTS`,
     "```",
   ].join("\n");
 
@@ -166,7 +184,7 @@ const codexIndexCommand = () =>
 
 const codexPluginManifest = () => ({
   name: "maxmem",
-  version: "0.1.0",
+  version: "0.1.8",
   description: "MaxMEM handoff commands for Codex.",
   author: {
     name: "MaxMEM",
@@ -243,6 +261,7 @@ const installClaudeCommands = ({ entryPath }: InstallInput) => {
     join(claudeCommandsDir(), "maxmem-companion.md"),
     claudeCompanionCommand({ entryPath }),
   );
+  writeText(join(claudeCommandsDir(), "maxmem-memory.md"), memoryCommand({ entryPath }));
   writeText(join(claudeCommandsDir(), "maxmem.md"), claudeIndexCommand());
 };
 
@@ -263,6 +282,7 @@ const installCodexCommands = ({ entryPath }: InstallInput) => {
     join(codexPluginCommandsDir(), "maxmem-companion.md"),
     codexCompanionCommand({ entryPath }),
   );
+  writeText(join(codexPluginCommandsDir(), "maxmem-memory.md"), memoryCommand({ entryPath }));
   writeText(join(codexPluginCommandsDir(), "maxmem.md"), codexIndexCommand());
   writeJson(codexPluginManifestPath(), codexPluginManifest());
   writeJson(codexMarketplacePath(), marketplaceWithMaxmem());

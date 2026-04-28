@@ -82,6 +82,32 @@ export const runInspectCommand = ({ args, cwd }: InspectCommandInput) => {
   console.log(
     renderList({ title: "Blockers", items: transcript.blockers, empty: "No blockers detected" }),
   );
+  console.log("");
+  console.log(
+    renderList({
+      title: "Next actions",
+      items: transcript.nextActions,
+      empty: "No next actions detected",
+    }),
+  );
+  console.log("");
+  console.log(
+    renderList({
+      title: "Verification",
+      items: transcript.tests,
+      empty: "No verification commands detected",
+    }),
+  );
+  console.log("");
+  console.log(
+    renderList({
+      title: "Open questions",
+      items: transcript.openQuestions,
+      empty: "No open questions detected",
+    }),
+  );
+  console.log("");
+  console.log(renderList({ title: "Risks", items: transcript.risks, empty: "No risks detected" }));
 
   if (hasFlag({ args, name: "capsule" }) && capsule) {
     console.log("");

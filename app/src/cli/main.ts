@@ -5,6 +5,7 @@ import { runCompanionCommand } from "../commands/companion";
 import { runHandoffCommand } from "../commands/handoff";
 import { runInspectCommand } from "../commands/inspect";
 import { runLaunchCommand } from "../commands/launch";
+import { runMemoryCommand } from "../commands/memory";
 import { ensureAutoSetup, runSetupCommand } from "../commands/setup";
 import { showStatus } from "../commands/status";
 import { agentBySessionStartHook, agentByStopHook, isAgent } from "../core/agents";
@@ -61,6 +62,7 @@ const printHelp = () => {
       "  maxmem inspect [--agent codex|claude|opencode] [--transcript path] [--capsule]",
       "  maxmem launch codex|claude|opencode [--goal text] [--same-window]",
       "  maxmem companion [--port 3838]",
+      "  maxmem memory [--add text] [--kind note|decision|blocker|verification|completed_task]",
       "  maxmem mcp",
       "  maxmem inject",
       "  maxmem setup [--quiet]",
@@ -144,6 +146,10 @@ const commandHandlers = {
   },
   launch: ({ args }: ArgsInput) => {
     runLaunchCommand({ args, cwd: process.cwd(), entryPath });
+    return 0;
+  },
+  memory: ({ args }: ArgsInput) => {
+    runMemoryCommand({ args, cwd: process.cwd() });
     return 0;
   },
   mcp: async () => {

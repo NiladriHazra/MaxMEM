@@ -25,6 +25,7 @@ export const companionHtml = () => `<!doctype html>
       <section class="work">
         <h2>Latest Handoff</h2>
         <div id="summary" class="repo"></div>
+        <div id="taskState" class="task-grid"></div>
         <pre id="capsuleText" class="capsule-text"></pre>
       </section>
       <aside class="controls">
@@ -43,6 +44,21 @@ export const companionHtml = () => `<!doctype html>
           <textarea id="goal" placeholder="Goal for the next agent"></textarea>
           <button class="primary" id="handoff">Create handoff</button>
         </div>
+        <h2>Project Memory</h2>
+        <div id="memory" class="memory-list"></div>
+        <div class="stack memory-form">
+          <select id="memoryKind">
+            <option value="note">note</option>
+            <option value="decision">decision</option>
+            <option value="blocker">blocker</option>
+            <option value="verification">verification</option>
+            <option value="completed_task">completed task</option>
+          </select>
+          <textarea id="memoryContent" placeholder="Save durable project memory"></textarea>
+          <button id="saveMemory">Save memory</button>
+        </div>
+        <h2>Handoff Reads</h2>
+        <div id="reads" class="read-list"></div>
         <h2>Launch Agent</h2>
         <div class="agents">
           <button data-launch="codex">Launch Codex</button>

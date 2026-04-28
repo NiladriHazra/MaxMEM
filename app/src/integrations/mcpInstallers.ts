@@ -12,6 +12,7 @@ const opencodeIndexCommand = () => ({
   template: [
     "Show this MaxMEM command menu to the user:",
     "maxmem-handoff: create a compact handoff capsule.",
+    "maxmem-memory: list or save durable project memory.",
     "maxmem-companion: open the local companion UI.",
     "maxmem-codex: create a handoff and launch Codex.",
     "maxmem-claude: create a handoff and launch Claude Code.",
@@ -47,6 +48,11 @@ const opencodeHandoffCommand = ({ entryPath }: InstallInput) => ({
   description: "Create a compact MaxMEM handoff capsule",
 });
 
+const opencodeMemoryCommand = ({ entryPath }: InstallInput) => ({
+  template: `Immediately run this exact shell command to list or save MaxMEM project memory. Append any user-provided memory text after --add: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} memory`,
+  description: "List or save MaxMEM project memory",
+});
+
 const codexConfig = () =>
   existsSync(codexConfigPath()) ? readFileSync(codexConfigPath(), "utf8") : "";
 
@@ -78,6 +84,7 @@ const opencodeConfig = ({ entryPath }: InstallInput) => {
       "maxmem-opencode": opencodeCommand({ entryPath, agent: "opencode" }),
       "maxmem-companion": opencodeCompanionCommand({ entryPath }),
       "maxmem-handoff": opencodeHandoffCommand({ entryPath }),
+      "maxmem-memory": opencodeMemoryCommand({ entryPath }),
       maxmem: opencodeIndexCommand(),
     },
     mcp: {

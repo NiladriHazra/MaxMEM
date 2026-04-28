@@ -13,6 +13,13 @@ const capsule: HandoffCapsule = {
   commands: ["bun test"],
   decisions: ["Use compact capsules"],
   blockers: ["No blocker"],
+  taskState: {
+    currentTask: "Ship handoff",
+    nextActions: ["Run final checks"],
+    openQuestions: [],
+    verification: ["bun test"],
+    risks: ["No blocker"],
+  },
   rawChat: ["user: token sk-proj_abcdefghijklmnopqrstuvwxyz"],
   transcriptPath: "/tmp/session.jsonl",
   nextPrompt: "Continue this task",

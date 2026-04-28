@@ -22,6 +22,14 @@ export interface HandoffPrivacy {
   preset: VerbosityPreset;
 }
 
+export interface HandoffTaskState {
+  currentTask: string;
+  nextActions: string[];
+  openQuestions: string[];
+  verification: string[];
+  risks: string[];
+}
+
 export interface TranscriptSummary {
   path: string;
   agent: Agent;
@@ -35,6 +43,10 @@ export interface TranscriptSummary {
   files: string[];
   decisions: string[];
   blockers: string[];
+  nextActions: string[];
+  openQuestions: string[];
+  tests: string[];
+  risks: string[];
   rawChat: string[];
 }
 
@@ -57,12 +69,33 @@ export interface HandoffCapsule {
   commands: string[];
   decisions: string[];
   blockers: string[];
+  taskState: HandoffTaskState;
   rawChat: string[];
   transcriptPath: string;
   nextPrompt: string;
   git: GitContext;
   privacy: HandoffPrivacy;
   createdAt: string;
+}
+
+export interface ProjectMemoryRecord {
+  id: string;
+  repoRoot: string;
+  kind: string;
+  content: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HandoffReadRecord {
+  id: string;
+  capsuleId: string;
+  repoRoot: string;
+  branch: string;
+  consumerAgent: Agent | "unknown";
+  source: string;
+  readAt: string;
 }
 
 export interface SessionRecord {

@@ -1,10 +1,11 @@
 import { redactList } from "./redaction";
-import type { ExportOptions, HandoffCapsule } from "./types";
+import type { ExportOptions, HandoffCapsule, ProjectMemoryRecord } from "./types";
 import { resolveVerbosity, type VerbosityConfig } from "./verbosity";
 
 interface RenderCapsuleInput {
   capsule: HandoffCapsule;
   options?: Partial<ExportOptions>;
+  memory?: ProjectMemoryRecord[];
 }
 
 interface RenderListInput {
@@ -16,6 +17,10 @@ interface RenderListInput {
 interface RenderPrivacyInput {
   options: ExportOptions;
   preset: string;
+}
+
+interface RenderMemoryInput {
+  memory: ProjectMemoryRecord[];
 }
 
 interface ResolveOptionsInput {
@@ -41,7 +46,47 @@ const renderPrivacy = ({ options, preset }: RenderPrivacyInput) => [
   "- Secrets redaction: enabled",
 ];
 
-export const renderAgentContext = ({ capsule }: RenderCapsuleInput) => {
+const renderTaskState = (capsule: HandoffCapsule) => [
+  "## Task State",
+  `Current task: ${capsule.taskState.currentTask}`,
+  "",
+  renderList({
+    title: "Next actions",
+    items: capsule.taskState.nextActions,
+    empty: "No next actions recorded",
+  }),
+  "",
+  renderList({
+    title: "Verification",
+    items: capsule.taskState.verification,
+    empty: "No verification commands recorded",
+  }),
+  "",
+  renderList({
+    title: "Open questions",
+    items: capsule.taskState.openQuestions,
+    empty: "No open questions recorded",
+  }),
+  "",
+  renderList({
+    title: "Risks",
+    items: capsule.taskState.risks,
+    empty: "No risks recorded",
+  }),
+];
+
+const renderMemory = ({ memory }: RenderMemoryInput) =>
+  memory.length
+    ? [
+        "## Project Memory",
+        ...memory.map(
+          (record) => `- ${record.kind}: ${record.content} (${record.source}, ${record.updatedAt})`,
+        ),
+        "",
+      ]
+    : [];
+
+export const renderAgentContext = ({ capsule, memory = [] }: RenderCapsuleInput) => {
   const renderOptions = resolveOptions({
     options: { rawChat: false },
     verbosity: resolveVerbosity(),
@@ -62,6 +107,9 @@ export const renderAgentContext = ({ capsule }: RenderCapsuleInput) => {
     "## Summary",
     capsule.summary,
     "",
+    ...renderTaskState(capsule),
+    "",
+    ...renderMemory({ memory }),
     ...(renderOptions.files
       ? [
           renderList({
@@ -131,6 +179,8 @@ export const renderCapsule = ({ capsule, options }: RenderCapsuleInput) => {
     `Goal: ${capsule.goal}`,
     "",
     `Summary: ${capsule.summary}`,
+    "",
+    ...renderTaskState(capsule),
     "",
     ...(renderOptions.files
       ? [

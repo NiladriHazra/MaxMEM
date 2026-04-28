@@ -14,6 +14,7 @@ describe("parseTranscript", () => {
     expect(summary.toolCallCount).toBe(1);
     expect(summary.commands).toContain("bun test");
     expect(summary.commands).toContain("bun run lint");
+    expect(summary.tests).toContain("bun run lint");
     expect(summary.files).toContain("src/core/capsule.ts");
     expect(summary.files).toContain("tests/capsule.test.ts");
     expect(summary.decisions[0]).toContain("Decision");
@@ -27,6 +28,7 @@ describe("parseTranscript", () => {
     expect(summary.parser).toBe("claude-jsonl");
     expect(summary.toolCallCount).toBe(2);
     expect(summary.commands).toContain("bun test tests/transcript.test.ts");
+    expect(summary.tests).toContain("bun test tests/transcript.test.ts");
     expect(summary.files).toContain("src/core/transcript.ts");
     expect(summary.files).toContain("tests/transcript.test.ts");
     expect(summary.decisions[0]).toContain("Decision");
@@ -43,6 +45,7 @@ describe("parseTranscript", () => {
     expect(summary.parser).toBe("opencode-jsonl");
     expect(summary.toolCallCount).toBe(2);
     expect(summary.commands).toContain("bun run build");
+    expect(summary.tests).toContain("bun run build");
     expect(summary.files).toContain("src/core/agents.ts");
     expect(summary.files).toContain("src/core/transcript.ts");
     expect(summary.decisions[0]).toContain("We will use");

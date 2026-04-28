@@ -4,7 +4,15 @@ import { agentFromValue } from "../core/agents";
 import { createCapsule, renderCapsule } from "../core/capsule";
 import { getGitContext } from "../core/git";
 import { launchAgent } from "../core/launch";
-import { getLatestCapsule, getLatestSession, listCapsules, listSessions } from "../core/store";
+import {
+  getLatestCapsule,
+  getLatestSession,
+  listCapsules,
+  listHandoffReads,
+  listProjectMemory,
+  listSessions,
+  saveProjectMemory,
+} from "../core/store";
 import type { HandoffCapsule } from "../core/types";
 
 interface JsonResponseInput {
@@ -24,6 +32,8 @@ interface CompanionRequestBody {
   cwd?: string;
   goal?: string;
   verbosity?: string;
+  kind?: string;
+  content?: string;
 }
 
 interface CapsuleSummaryInput {
@@ -62,6 +72,7 @@ const capsuleSummary = ({ capsule }: CapsuleSummaryInput) => ({
   summary: capsule.summary,
   createdAt: capsule.createdAt,
   nextPrompt: capsule.nextPrompt,
+  taskState: capsule.taskState,
   rendered: renderCapsule({ capsule }),
 });
 
@@ -80,6 +91,8 @@ const statePayload = (cwd: string) => {
       latestSession: getLatestSession({ repoRoot: git.repoRoot }),
     },
     sessions: listSessions({ repoRoot: git.repoRoot }),
+    memory: listProjectMemory({ repoRoot: git.repoRoot }),
+    reads: listHandoffReads({ repoRoot: git.repoRoot }),
     latest: latest ? capsuleSummary({ capsule: latest }) : undefined,
     capsules: capsules.map((capsule) => capsuleSummary({ capsule })),
   };
@@ -111,6 +124,19 @@ const launchResponse = async ({ request, cwd }: CompanionRequestInput) => {
   return jsonResponse({ value: result, status: result.ok ? 200 : 500 });
 };
 
+const memoryResponse = async ({ request, cwd }: CompanionRequestInput) => {
+  const body = await requestBody(request);
+  const git = getGitContext({ cwd: safeCwd(cwd, body.cwd) });
+  const record = saveProjectMemory({
+    repoRoot: git.repoRoot,
+    kind: body.kind ?? "note",
+    content: body.content ?? "",
+    source: "companion",
+  });
+
+  return jsonResponse({ value: { ok: Boolean(record), record }, status: record ? 200 : 400 });
+};
+
 const routes: CompanionRoute[] = [
   {
     path: "/api/state",
@@ -128,6 +154,11 @@ const routes: CompanionRoute[] = [
     path: "/api/launch",
     method: "POST",
     handler: launchResponse,
+  },
+  {
+    path: "/api/memory",
+    method: "POST",
+    handler: memoryResponse,
   },
 ];
 

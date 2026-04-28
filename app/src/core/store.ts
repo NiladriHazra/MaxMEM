@@ -1,8 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Database } from "bun:sqlite";
-import type { Agent, HandoffCapsule, SessionRecord } from "./types";
+import { redactText } from "./redaction";
+import type {
+  Agent,
+  HandoffCapsule,
+  HandoffReadRecord,
+  HandoffTaskState,
+  SessionRecord,
+} from "./types";
 
 interface SaveSessionInput {
   session: SessionRecord;
@@ -10,6 +18,33 @@ interface SaveSessionInput {
 
 interface SaveCapsuleInput {
   capsule: HandoffCapsule;
+}
+
+interface SaveProjectMemoryInput {
+  repoRoot: string;
+  kind: string;
+  content: string;
+  source?: string;
+}
+
+interface ListProjectMemoryInput {
+  repoRoot: string;
+  kind?: string;
+  limit?: number;
+}
+
+interface RecordHandoffReadInput {
+  capsuleId: string;
+  repoRoot: string;
+  branch: string;
+  consumerAgent?: Agent | "unknown";
+  source?: string;
+}
+
+interface ListHandoffReadsInput {
+  repoRoot: string;
+  capsuleId?: string;
+  limit?: number;
 }
 
 interface LatestCapsuleInput {
@@ -44,6 +79,7 @@ interface CapsuleRow {
   commands_json: string;
   decisions_json: string;
   blockers_json: string;
+  task_state_json: string;
   raw_chat_json: string;
   transcript_path: string;
   next_prompt: string;
@@ -61,6 +97,26 @@ interface SessionRow {
   transcript_path: string;
   created_at: string;
   updated_at: string;
+}
+
+interface ProjectMemoryRow {
+  id: string;
+  repo_root: string;
+  kind: string;
+  content: string;
+  source: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface HandoffReadRow {
+  id: string;
+  capsule_id: string;
+  repo_root: string;
+  branch: string;
+  consumer_agent: Agent | "unknown";
+  source: string;
+  read_at: string;
 }
 
 const schemaStatements = [
@@ -88,6 +144,7 @@ const schemaStatements = [
     commands_json text not null,
     decisions_json text not null,
     blockers_json text not null,
+    task_state_json text not null default '{"currentTask":"","nextActions":[],"openQuestions":[],"verification":[],"risks":[]}',
     raw_chat_json text not null default '[]',
     transcript_path text not null default '',
     next_prompt text not null,
@@ -104,12 +161,48 @@ const schemaStatements = [
   create index if not exists sessions_repo_agent_updated_at
   on sessions (repo_root, agent, updated_at)
   `,
+  `
+  create table if not exists project_memory (
+    id text primary key,
+    repo_root text not null,
+    kind text not null,
+    content text not null,
+    source text not null,
+    created_at text not null,
+    updated_at text not null,
+    unique(repo_root, kind, content)
+  )
+  `,
+  `
+  create index if not exists project_memory_repo_updated_at
+  on project_memory (repo_root, updated_at)
+  `,
+  `
+  create table if not exists handoff_reads (
+    id text primary key,
+    capsule_id text not null,
+    repo_root text not null,
+    branch text not null,
+    consumer_agent text not null,
+    source text not null,
+    read_at text not null
+  )
+  `,
+  `
+  create index if not exists handoff_reads_repo_read_at
+  on handoff_reads (repo_root, read_at)
+  `,
+  `
+  create index if not exists handoff_reads_capsule_read_at
+  on handoff_reads (capsule_id, read_at)
+  `,
 ];
 
 const migrations = [
   "alter table capsules add column raw_chat_json text not null default '[]'",
   "alter table capsules add column transcript_path text not null default ''",
   'alter table capsules add column privacy_json text not null default \'{"includeRawChat":false,"redacted":true,"preset":"compact"}\'',
+  'alter table capsules add column task_state_json text not null default \'{"currentTask":"","nextActions":[],"openQuestions":[],"verification":[],"risks":[]}\'',
 ];
 
 export const dataDirectory = () => process.env.MAXMEM_DATA_DIR ?? join(homedir(), ".maxmem");
@@ -131,6 +224,33 @@ export const openStore = () => {
   return db;
 };
 
+const defaultTaskState = () =>
+  ({
+    currentTask: "",
+    nextActions: [],
+    openQuestions: [],
+    verification: [],
+    risks: [],
+  }) satisfies HandoffTaskState;
+
+const parseTaskState = (value: string) => {
+  try {
+    const taskState = JSON.parse(value) as Partial<HandoffTaskState>;
+
+    return {
+      ...defaultTaskState(),
+      ...taskState,
+      currentTask: taskState.currentTask ?? "",
+      nextActions: taskState.nextActions ?? [],
+      openQuestions: taskState.openQuestions ?? [],
+      verification: taskState.verification ?? [],
+      risks: taskState.risks ?? [],
+    };
+  } catch {
+    return defaultTaskState();
+  }
+};
+
 const rowToCapsule = (row: CapsuleRow) => {
   const privacy = JSON.parse(row.privacy_json) as Partial<HandoffCapsule["privacy"]>;
 
@@ -145,6 +265,7 @@ const rowToCapsule = (row: CapsuleRow) => {
     commands: JSON.parse(row.commands_json) as string[],
     decisions: JSON.parse(row.decisions_json) as string[],
     blockers: JSON.parse(row.blockers_json) as string[],
+    taskState: parseTaskState(row.task_state_json),
     rawChat: JSON.parse(row.raw_chat_json) as string[],
     transcriptPath: row.transcript_path,
     nextPrompt: row.next_prompt,
@@ -167,6 +288,26 @@ const rowToSession = (row: SessionRow) => ({
   transcriptPath: row.transcript_path,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+});
+
+const rowToProjectMemory = (row: ProjectMemoryRow) => ({
+  id: row.id,
+  repoRoot: row.repo_root,
+  kind: row.kind,
+  content: row.content,
+  source: row.source,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const rowToHandoffRead = (row: HandoffReadRow) => ({
+  id: row.id,
+  capsuleId: row.capsule_id,
+  repoRoot: row.repo_root,
+  branch: row.branch,
+  consumerAgent: row.consumer_agent,
+  source: row.source,
+  readAt: row.read_at,
 });
 
 export const saveSession = ({ session }: SaveSessionInput) => {
@@ -203,9 +344,9 @@ export const saveCapsule = ({ capsule }: SaveCapsuleInput) => {
   db.query(`
     insert into capsules (
       id, repo_root, branch, source_agent, goal, summary, files_json,
-      commands_json, decisions_json, blockers_json, raw_chat_json, transcript_path,
-      next_prompt, git_json, privacy_json, created_at
-    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      commands_json, decisions_json, blockers_json, task_state_json, raw_chat_json,
+      transcript_path, next_prompt, git_json, privacy_json, created_at
+    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     capsule.id,
     capsule.repoRoot,
@@ -217,6 +358,7 @@ export const saveCapsule = ({ capsule }: SaveCapsuleInput) => {
     JSON.stringify(capsule.commands),
     JSON.stringify(capsule.decisions),
     JSON.stringify(capsule.blockers),
+    JSON.stringify(capsule.taskState),
     JSON.stringify(capsule.rawChat),
     capsule.transcriptPath,
     capsule.nextPrompt,
@@ -226,6 +368,132 @@ export const saveCapsule = ({ capsule }: SaveCapsuleInput) => {
   );
 
   db.close();
+};
+
+export const saveProjectMemory = ({
+  repoRoot,
+  kind,
+  content,
+  source = "maxmem",
+}: SaveProjectMemoryInput) => {
+  const db = openStore();
+  const timestamp = new Date().toISOString();
+  const redacted = redactText({ text: content.trim() });
+
+  if (!redacted) {
+    db.close();
+    return undefined;
+  }
+
+  db.query(`
+    insert into project_memory (
+      id, repo_root, kind, content, source, created_at, updated_at
+    ) values (?, ?, ?, ?, ?, ?, ?)
+    on conflict(repo_root, kind, content) do update set
+      source = excluded.source,
+      updated_at = excluded.updated_at
+  `).run(randomUUID(), repoRoot, kind, redacted, source, timestamp, timestamp);
+
+  const row = db
+    .query(`
+      select * from project_memory
+      where repo_root = ? and kind = ? and content = ?
+      limit 1
+    `)
+    .get(repoRoot, kind, redacted) as ProjectMemoryRow | null;
+
+  db.close();
+
+  return row ? rowToProjectMemory(row) : undefined;
+};
+
+export const listProjectMemory = ({ repoRoot, kind, limit = 20 }: ListProjectMemoryInput) => {
+  const db = openStore();
+  const rows = kind
+    ? (db
+        .query(`
+      select * from project_memory
+      where repo_root = ? and kind = ?
+      order by updated_at desc
+      limit ?
+    `)
+        .all(repoRoot, kind, limit) as ProjectMemoryRow[])
+    : (db
+        .query(`
+      select * from project_memory
+      where repo_root = ?
+      order by updated_at desc
+      limit ?
+    `)
+        .all(repoRoot, limit) as ProjectMemoryRow[]);
+  const memory = rows.map(rowToProjectMemory);
+
+  db.close();
+
+  return memory;
+};
+
+export const recordHandoffRead = ({
+  capsuleId,
+  repoRoot,
+  branch,
+  consumerAgent = "unknown",
+  source = "inject",
+}: RecordHandoffReadInput) => {
+  const db = openStore();
+  const read: HandoffReadRecord = {
+    id: randomUUID(),
+    capsuleId,
+    repoRoot,
+    branch,
+    consumerAgent,
+    source,
+    readAt: new Date().toISOString(),
+  };
+
+  db.query(`
+    insert into handoff_reads (
+      id, capsule_id, repo_root, branch, consumer_agent, source, read_at
+    ) values (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    read.id,
+    read.capsuleId,
+    read.repoRoot,
+    read.branch,
+    read.consumerAgent,
+    read.source,
+    read.readAt,
+  );
+
+  db.close();
+
+  return read;
+};
+
+export const listHandoffReads = ({ repoRoot, capsuleId, limit = 20 }: ListHandoffReadsInput) => {
+  const db = openStore();
+  const rows = capsuleId
+    ? (db
+        .query(`
+      select * from handoff_reads
+      where repo_root = ? and capsule_id = ?
+      order by read_at desc
+      limit ?
+    `)
+        .all(repoRoot, capsuleId, limit) as HandoffReadRow[])
+    : (db
+        .query(`
+      select * from handoff_reads
+      where repo_root = ?
+      order by read_at desc
+      limit ?
+    `)
+        .all(repoRoot, limit) as HandoffReadRow[]);
+  const reads = rows.map(rowToHandoffRead);
+
+  db.close();
+
+  return reads;
 };
 
 export const getLatestCapsule = ({ repoRoot, branch }: LatestCapsuleInput) => {

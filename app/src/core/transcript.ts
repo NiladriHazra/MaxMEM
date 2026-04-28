@@ -100,6 +100,10 @@ const emptySummary = ({ path, agent, parser }: EmptySummaryInput) => ({
   files: [],
   decisions: [],
   blockers: [],
+  nextActions: [],
+  openQuestions: [],
+  tests: [],
+  risks: [],
   rawChat: [],
 });
 
@@ -370,6 +374,34 @@ const blockerMatches = (text: string) =>
     .map((line) => line.trim())
     .filter((line) => /\b(blocked|blocker|failing|failed|cannot|can't|error)\b/i.test(line));
 
+const nextActionMatches = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) =>
+      /\b(todo|next|continue|follow-?up|remaining|left|need to|after that|must)\b/i.test(line),
+    );
+
+const openQuestionMatches = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /\?|open question|unclear|confirm|ask the user/i.test(line));
+
+const testMatches = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /\b(test|tests|lint|typecheck|tsc|build|verify|check)\b/i.test(line));
+
+const riskMatches = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) =>
+      /\b(risk|regression|unsafe|breaking|permission|missing|uncertain|fragile)\b/i.test(line),
+    );
+
 const redactEvent = ({ event }: RedactEventInput) =>
   eventWithDetails({
     role: event.role,
@@ -452,6 +484,22 @@ export const parseTranscript = ({ path, agent = "codex", verbosity }: ParseTrans
     blockers: limitValues({
       values: unique(redactList({ values: eventTexts.flatMap(blockerMatches) })),
       limit: limits.blockers,
+    }),
+    nextActions: limitValues({
+      values: unique(redactList({ values: eventTexts.flatMap(nextActionMatches) })),
+      limit: 12,
+    }),
+    openQuestions: limitValues({
+      values: unique(redactList({ values: eventTexts.flatMap(openQuestionMatches) })),
+      limit: 12,
+    }),
+    tests: limitValues({
+      values: unique(redactList({ values: eventTexts.flatMap(testMatches) })),
+      limit: 12,
+    }),
+    risks: limitValues({
+      values: unique(redactList({ values: eventTexts.flatMap(riskMatches) })),
+      limit: 12,
     }),
     rawChat: limitValues({
       values: redactList({

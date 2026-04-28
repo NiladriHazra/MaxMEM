@@ -82,7 +82,11 @@ const saveHookSession = ({ input, agent }: SaveHookSessionInput) => {
 export const handleSessionStartHook = async ({ agent }: HookHandlerInput) => {
   const input = await readHookInput<SessionHookInput>();
   const cwd = saveHookSession({ input, agent });
-  const additionalContext = getInjectionContext({ cwd });
+  const additionalContext = getInjectionContext({
+    cwd,
+    consumerAgent: agent,
+    source: "session-start-hook",
+  });
 
   if (additionalContext) {
     console.log(JSON.stringify(jsonOutput(additionalContext)));

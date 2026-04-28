@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>Codex hooks</code> - <code>Claude slash commands</code> - <code>OpenCode plugin</code> - <code>MCP server</code> - <code>local capsule viewer</code>
+  <code>Codex hooks</code> - <code>Claude slash commands</code> - <code>OpenCode plugin</code> - <code>MCP server</code> - <code>project memory</code> - <code>local companion</code>
 </p>
 
 ## Why MaxMEM Exists
@@ -31,7 +31,9 @@ MaxMEM solves that by saving only the work state that matters:
 
 - repo, branch, head, changed files, and recent commits
 - transcript-derived commands, file mentions, decisions, and blockers
-- the current goal and the next recommended prompt
+- the current task, next actions, verification commands, risks, and open questions
+- durable project memory for decisions, blockers, notes, verification, and completed tasks
+- handoff read history so you can see whether context was actually injected
 - source agent and timestamp
 - optional redacted raw snippets only when explicitly requested
 
@@ -44,9 +46,11 @@ Raw chat is off by default. The capsule is designed to be short enough for an ag
 1. An agent starts, stops, compacts, or calls a MaxMEM command.
 2. MaxMEM reads live git state and the latest known transcript path.
 3. The adapter registry selects the right parser for Codex, Claude Code, or OpenCode.
-4. The parser extracts commands, files, decisions, blockers, and optional raw snippets.
+4. The parser extracts commands, files, decisions, blockers, next actions, test/check commands, open questions, and risks.
 5. Redaction runs before anything is saved or rendered.
-6. The next agent receives a compact handoff through hooks, MCP, slash commands, wrapper injection, or the companion UI.
+6. Durable project memory is updated with decisions, blockers, risks, and the current task.
+7. The next agent receives a compact handoff through hooks, MCP, slash commands, wrapper injection, or the companion UI.
+8. MaxMEM records read events when a handoff is injected or fetched through MCP.
 
 ## Capsule Anatomy
 
@@ -59,6 +63,14 @@ The default capsule is privacy-first:
 - `full`: includes redacted raw snippets only when explicitly selected
 
 Use `--raw-chat` or `--verbosity full` only when you actually want raw snippets included.
+
+Every capsule now includes a task-state section:
+
+- current task
+- next actions
+- verification commands/results
+- open questions
+- risks
 
 ## Install
 
@@ -103,28 +115,32 @@ maxmem launch codex
 maxmem launch claude
 maxmem launch opencode
 maxmem handoff --select
+maxmem memory --add "Keep handoffs local" --kind decision
 maxmem inspect --capsule
 ```
 
 ## Commands
 
-| Command                               | Purpose                                                        |
-| ------------------------------------- | -------------------------------------------------------------- |
-| `maxmem codex [args...]`              | Launch Codex through the MaxMEM wrapper                        |
-| `maxmem claude [args...]`             | Launch Claude Code through the MaxMEM wrapper                  |
-| `maxmem opencode [args...]`           | Launch OpenCode through the MaxMEM wrapper                     |
-| `maxmem handoff`                      | Create and print a compact handoff capsule                     |
-| `maxmem handoff --copy`               | Copy the capsule on macOS                                      |
-| `maxmem handoff --select`             | Choose exactly which sections to include                       |
-| `maxmem handoff --verbosity standard` | Include more extracted context without raw chat                |
-| `maxmem handoff --verbosity full`     | Include redacted raw snippets when selected                    |
-| `maxmem inspect`                      | Inspect latest transcript and capsule state                    |
-| `maxmem launch <agent>`               | Create a handoff and open an agent in the current terminal app |
-| `maxmem companion`                    | Open the local capsule viewer and launcher                     |
-| `maxmem mcp`                          | Run the stdio MCP server                                       |
-| `maxmem inject`                       | Print latest injectable context for this repo                  |
-| `maxmem setup`                        | Install or repair integrations                                 |
-| `maxmem status --verbose`             | Show repository handoff status                                 |
+| Command                                      | Purpose                                                        |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| `maxmem codex [args...]`                     | Launch Codex through the MaxMEM wrapper                        |
+| `maxmem claude [args...]`                    | Launch Claude Code through the MaxMEM wrapper                  |
+| `maxmem opencode [args...]`                  | Launch OpenCode through the MaxMEM wrapper                     |
+| `maxmem handoff`                             | Create and print a compact handoff capsule                     |
+| `maxmem handoff --copy`                      | Copy the capsule on macOS                                      |
+| `maxmem handoff --select`                    | Choose exactly which sections to include                       |
+| `maxmem handoff --verbosity standard`        | Include more extracted context without raw chat                |
+| `maxmem handoff --verbosity full`            | Include redacted raw snippets when selected                    |
+| `maxmem inspect`                             | Inspect latest transcript and capsule state                    |
+| `maxmem launch <agent>`                      | Create a handoff and open an agent in the current terminal app |
+| `maxmem companion`                           | Open the local capsule viewer and launcher                     |
+| `maxmem memory`                              | List durable project memory for the current repo               |
+| `maxmem memory --add "text"`                 | Save a project memory note                                     |
+| `maxmem memory --kind decision --add "text"` | Save a typed project memory record                             |
+| `maxmem mcp`                                 | Run the stdio MCP server                                       |
+| `maxmem inject`                              | Print latest injectable context for this repo                  |
+| `maxmem setup`                               | Install or repair integrations                                 |
+| `maxmem status --verbose`                    | Show repository handoff status                                 |
 
 ## Agent Shortcuts
 
@@ -133,6 +149,7 @@ Claude Code slash commands:
 ```text
 /maxmem
 /maxmem-handoff
+/maxmem-memory
 /maxmem-companion
 /maxmem-codex
 /maxmem-claude
@@ -144,6 +161,7 @@ OpenCode commands:
 ```text
 maxmem
 maxmem-handoff
+maxmem-memory
 maxmem-companion
 maxmem-codex
 maxmem-claude
@@ -155,6 +173,7 @@ Codex command plugin entries:
 ```text
 /maxmem
 /maxmem-handoff
+/maxmem-memory
 /maxmem-companion
 /maxmem-codex
 /maxmem-claude
@@ -167,9 +186,27 @@ Codex receives the same handoff behavior through hooks, MCP, and the local comma
 
 ## Companion UI
 
-`maxmem companion` starts a local browser UI for the current repository. It shows recent capsules, the latest rendered handoff, repository status, and launch buttons for Codex, Claude Code, and OpenCode.
+`maxmem companion` starts a local browser UI for the current repository. It shows recent capsules, the latest rendered handoff, task state, project memory, read history, repository status, and launch buttons for Codex, Claude Code, and OpenCode.
 
 It is intentionally local. It does not need a cloud account, hosted database, or remote sync service.
+
+## MCP Tools
+
+Agents that prefer tool calls can use MaxMEM without relying only on shell hooks:
+
+| Tool                         | Purpose                                          |
+| ---------------------------- | ------------------------------------------------ |
+| `maxmem_start_session`       | Save session metadata and return handoff context |
+| `maxmem_save_handoff`        | Create a compact handoff capsule                 |
+| `maxmem_get_latest_handoff`  | Fetch latest handoff context and record the read |
+| `maxmem_status`              | Read repo, session, memory, and handoff status   |
+| `maxmem_save_project_memory` | Save a typed project memory record               |
+| `maxmem_list_project_memory` | List durable project memory                      |
+| `maxmem_list_handoff_reads`  | List handoff read events                         |
+| `maxmem_save_decision`       | Save a durable decision                          |
+| `maxmem_save_blocker`        | Save a durable blocker                           |
+| `maxmem_save_verification`   | Save a verification command or result            |
+| `maxmem_mark_task_done`      | Save a completed-task marker                     |
 
 ## Architecture
 
@@ -190,7 +227,7 @@ Key files:
 - `app/src/core/transcript.ts`: Codex, Claude Code, and OpenCode transcript parsing
 - `app/src/core/capsule.ts`: capsule creation and injection context
 - `app/src/core/capsuleRender.ts`: rendered handoff formats
-- `app/src/core/store.ts`: local SQLite storage
+- `app/src/core/store.ts`: local SQLite capsules, project memory, and read tracking
 - `app/src/integrations/installers.ts`: public setup installer entry point
 - `app/src/mcp/tools.ts`: MCP tool definitions
 
@@ -220,4 +257,4 @@ There is no committed `dist/cli.js`. The package bin is `app/bin/maxmem`, and th
 - Add more provider-specific transcript fixtures as formats evolve.
 - Harden Linux and Windows terminal launching beyond the current macOS-first path.
 - Add richer companion history filters and per-repo capsule search.
-- Add package publishing automation once the package name and release flow are final.
+- Harden package release automation now that the package is public.
