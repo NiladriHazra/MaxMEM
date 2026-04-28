@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Local-first handoff capsules for Codex, Claude Code, and OpenCode.",
   "bin": {
-    "maxmem": "./bin/maxmem"
+    "maxmem": "bin/maxmem"
   },
   "files": [
     "bin",
