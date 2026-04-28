@@ -58,7 +58,7 @@ Use `--raw-chat` or `--verbosity full` only when you actually want raw snippets 
 Prerequisite: Bun must be available because the package executable is a Bun CLI shim.
 
 ```sh
-npm install -g maxmem
+npm install -g @bytehumi/maxmem
 ```
 
 After install, MaxMEM attempts setup automatically. The first normal `maxmem` command also checks setup and repairs missing integration wiring.

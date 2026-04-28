@@ -1,5 +1,5 @@
 {
-  "name": "maxmem",
+  "name": "@bytehumi/maxmem",
   "version": "0.1.0",
   "description": "Local-first handoff capsules for Codex, Claude Code, and OpenCode.",
   "bin": {
