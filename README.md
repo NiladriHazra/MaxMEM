@@ -70,6 +70,8 @@ npm install -g @bytehumi/maxmem
 
 After install, MaxMEM runs setup automatically and wires Codex, Claude Code, and OpenCode. The first normal `maxmem` command also checks setup and repairs missing integration wiring.
 
+Restart any already-running Codex, Claude Code, or OpenCode session after install. Their command menus are loaded when the agent starts.
+
 Run setup manually only when you want to force reinstall integrations:
 
 ```sh
@@ -146,6 +148,17 @@ maxmem-companion
 maxmem-codex
 maxmem-claude
 maxmem-opencode
+```
+
+Codex command plugin entries:
+
+```text
+/maxmem
+/maxmem-handoff
+/maxmem-companion
+/maxmem-codex
+/maxmem-claude
+/maxmem-opencode
 ```
 
 On macOS, launch shortcuts opened from VS Code or Cursor create a new integrated terminal in the active workspace. From Terminal.app they open a new Terminal window.

@@ -1,8 +1,10 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { readJson, shellQuote, writeJson, writeText } from "./installerFiles";
+import { readJson, shellQuote, upsertTomlBlock, writeJson, writeText } from "./installerFiles";
 import {
   claudeCommandsDir,
+  codexConfigPath,
   codexMarketplacePath,
   codexPluginCommandsDir,
   codexPluginDir,
@@ -11,6 +13,20 @@ import {
 import type { AgentCommandInput, InstallInput } from "./installerTypes";
 
 const launchAgents = ["codex", "claude", "opencode"] as const;
+
+interface CommandFrontmatterInput {
+  description: string;
+  allowedTools?: string[];
+}
+
+const commandFrontmatter = ({ description, allowedTools }: CommandFrontmatterInput) =>
+  [
+    "---",
+    `description: ${description}`,
+    ...(allowedTools?.length ? [`allowed-tools: [${allowedTools.join(", ")}]`] : []),
+    "---",
+    "",
+  ].join("\n");
 
 const commandList = () =>
   [
@@ -25,11 +41,15 @@ const commandList = () =>
 
 const claudeCommand = ({ entryPath, agent }: AgentCommandInput) =>
   [
+    commandFrontmatter({
+      description: `Create MaxMEM handoff and launch ${agent}`,
+      allowedTools: ["Bash"],
+    }),
     `# maxmem-${agent}`,
     "",
     `Create a MaxMEM handoff for the current repository, then launch ${agent} from the current terminal app.`,
     "",
-    "Run this shell command:",
+    "Run this shell command immediately:",
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} launch ${agent} --from claude`,
@@ -38,11 +58,15 @@ const claudeCommand = ({ entryPath, agent }: AgentCommandInput) =>
 
 const claudeHandoffCommand = ({ entryPath }: InstallInput) =>
   [
+    commandFrontmatter({
+      description: "Create compact MaxMEM handoff capsule",
+      allowedTools: ["Bash"],
+    }),
     "# maxmem-handoff",
     "",
     "Create a compact MaxMEM handoff capsule for the current repository.",
     "",
-    "Run this shell command:",
+    "Run this shell command immediately:",
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} handoff --copy`,
@@ -51,11 +75,15 @@ const claudeHandoffCommand = ({ entryPath }: InstallInput) =>
 
 const claudeCompanionCommand = ({ entryPath }: InstallInput) =>
   [
+    commandFrontmatter({
+      description: "Open MaxMEM companion UI",
+      allowedTools: ["Bash"],
+    }),
     "# maxmem-companion",
     "",
     "Open the MaxMEM companion UI for the current repository.",
     "",
-    "Run this shell command:",
+    "Run this shell command immediately:",
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} companion`,
@@ -64,6 +92,7 @@ const claudeCompanionCommand = ({ entryPath }: InstallInput) =>
 
 const claudeIndexCommand = () =>
   [
+    commandFrontmatter({ description: "Show MaxMEM command menu" }),
     "# maxmem",
     "",
     "Show this MaxMEM command menu to the user. Do not run a shell command unless the user chooses one.",
@@ -76,9 +105,15 @@ const claudeIndexCommand = () =>
 
 const codexCommand = ({ entryPath, agent }: AgentCommandInput) =>
   [
+    commandFrontmatter({
+      description: `Create MaxMEM handoff and launch ${agent}`,
+      allowedTools: ["Bash"],
+    }),
     `# maxmem-${agent}`,
     "",
     `Create a MaxMEM handoff for the current repository, then launch ${agent} from the current terminal app.`,
+    "",
+    "Run this shell command immediately:",
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} launch ${agent} --from codex`,
@@ -87,9 +122,15 @@ const codexCommand = ({ entryPath, agent }: AgentCommandInput) =>
 
 const codexHandoffCommand = ({ entryPath }: InstallInput) =>
   [
+    commandFrontmatter({
+      description: "Create compact MaxMEM handoff capsule",
+      allowedTools: ["Bash"],
+    }),
     "# maxmem-handoff",
     "",
     "Create a compact MaxMEM handoff capsule for the current repository.",
+    "",
+    "Run this shell command immediately:",
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} handoff --copy`,
@@ -98,9 +139,15 @@ const codexHandoffCommand = ({ entryPath }: InstallInput) =>
 
 const codexCompanionCommand = ({ entryPath }: InstallInput) =>
   [
+    commandFrontmatter({
+      description: "Open MaxMEM companion UI",
+      allowedTools: ["Bash"],
+    }),
     "# maxmem-companion",
     "",
     "Open the MaxMEM companion UI for the current repository.",
+    "",
+    "Run this shell command immediately:",
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} companion`,
@@ -109,6 +156,7 @@ const codexCompanionCommand = ({ entryPath }: InstallInput) =>
 
 const codexIndexCommand = () =>
   [
+    commandFrontmatter({ description: "Show MaxMEM command menu" }),
     "# maxmem",
     "",
     "Show this MaxMEM command menu to the user. Do not run a shell command unless the user chooses one.",
@@ -174,6 +222,17 @@ const marketplaceWithMaxmem = () => {
   };
 };
 
+const codexConfig = () =>
+  existsSync(codexConfigPath()) ? readFileSync(codexConfigPath(), "utf8") : "";
+
+const codexMarketplaceConfigBlock = () =>
+  [
+    "[marketplaces.local]",
+    `last_updated = ${JSON.stringify(new Date().toISOString())}`,
+    'source_type = "local"',
+    `source = ${JSON.stringify(homedir())}`,
+  ].join("\n");
+
 const installClaudeCommands = ({ entryPath }: InstallInput) => {
   mkdirSync(claudeCommandsDir(), { recursive: true });
   launchAgents.map((agent) =>
@@ -207,6 +266,14 @@ const installCodexCommands = ({ entryPath }: InstallInput) => {
   writeText(join(codexPluginCommandsDir(), "maxmem.md"), codexIndexCommand());
   writeJson(codexPluginManifestPath(), codexPluginManifest());
   writeJson(codexMarketplacePath(), marketplaceWithMaxmem());
+  writeText(
+    codexConfigPath(),
+    upsertTomlBlock({
+      content: codexConfig(),
+      header: "marketplaces.local",
+      block: codexMarketplaceConfigBlock(),
+    }),
+  );
 };
 
 export const installAgentCommands = ({ entryPath }: InstallInput) => {
@@ -217,5 +284,6 @@ export const installAgentCommands = ({ entryPath }: InstallInput) => {
     `Installed Claude slash commands in ${claudeCommandsDir()}`,
     `Installed Codex plugin commands in ${codexPluginDir()}`,
     `Registered Codex local plugin marketplace in ${codexMarketplacePath()}`,
+    `Enabled Codex local plugin marketplace in ${codexConfigPath()}`,
   ];
 };

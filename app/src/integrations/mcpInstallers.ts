@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { readJson, shellQuote, writeJson, writeText } from "./installerFiles";
+import { readJson, shellQuote, upsertTomlBlock, writeJson, writeText } from "./installerFiles";
 import {
   claudeConfigPath,
   codexConfigPath,
@@ -25,13 +25,6 @@ const mcpCommand = ({ entryPath }: InstallInput) => ({
   args: [entryPath, "mcp"],
 });
 
-const upsertTomlBlock = (content: string, block: string) => {
-  const pattern = /\n?\[mcp_servers\.maxmem\][\s\S]*?(?=\n\[[^\n]+\]|\s*$)/;
-  const cleaned = content.replace(pattern, "").trimEnd();
-
-  return `${cleaned}\n\n${block.trim()}\n`;
-};
-
 const codexMcpBlock = ({ entryPath }: InstallInput) =>
   [
     "[mcp_servers.maxmem]",
@@ -40,17 +33,17 @@ const codexMcpBlock = ({ entryPath }: InstallInput) =>
   ].join("\n");
 
 const opencodeCommand = ({ entryPath, agent }: AgentCommandInput) => ({
-  template: `Run this shell command to create a MaxMEM handoff and launch ${agent}: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} launch ${agent} --from opencode`,
+  template: `Immediately run this exact shell command to create a MaxMEM handoff and launch ${agent}. Do not only print it: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} launch ${agent} --from opencode`,
   description: `Launch ${agent} through MaxMEM with the current handoff context`,
 });
 
 const opencodeCompanionCommand = ({ entryPath }: InstallInput) => ({
-  template: `Run this shell command to open the MaxMEM companion UI: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} companion`,
+  template: `Immediately run this exact shell command to open the MaxMEM companion UI. Do not only print it: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} companion`,
   description: "Open the MaxMEM companion UI",
 });
 
 const opencodeHandoffCommand = ({ entryPath }: InstallInput) => ({
-  template: `Run this shell command to create a compact MaxMEM handoff: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} handoff --copy`,
+  template: `Immediately run this exact shell command to create a compact MaxMEM handoff. Do not only print it: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} handoff --copy`,
   description: "Create a compact MaxMEM handoff capsule",
 });
 
@@ -108,7 +101,14 @@ export const installMcpConfigs = ({ entryPath }: InstallInput) => {
   const claude = claudeMcpServers({ entryPath });
   const opencode = opencodeConfig({ entryPath });
 
-  writeText(codexConfigPath(), upsertTomlBlock(codexConfig(), codexMcpBlock({ entryPath })));
+  writeText(
+    codexConfigPath(),
+    upsertTomlBlock({
+      content: codexConfig(),
+      header: "mcp_servers.maxmem",
+      block: codexMcpBlock({ entryPath }),
+    }),
+  );
   writeJson(claudeConfigPath(), { ...claude.config, mcpServers: claude.mcpServers });
   writeJson(opencodeConfigPath(), {
     ...opencode.config,

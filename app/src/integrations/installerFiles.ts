@@ -2,6 +2,12 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { dirname } from "node:path";
 import type { CommandInput } from "./installerTypes";
 
+interface TomlBlockInput {
+  content: string;
+  header: string;
+  block: string;
+}
+
 export const shellQuote = (value: string) => `'${value.replaceAll("'", "'\"'\"'")}'`;
 
 export const hookCommand = ({ entryPath, args }: CommandInput) =>
@@ -9,6 +15,17 @@ export const hookCommand = ({ entryPath, args }: CommandInput) =>
 
 export const readJson = <T>(path: string, fallback: T) =>
   existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as T) : fallback;
+
+const escapedRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const upsertTomlBlock = ({ content, header, block }: TomlBlockInput) => {
+  const pattern = new RegExp(
+    `\\n?\\[${escapedRegExp(header)}\\][\\s\\S]*?(?=\\n\\[[^\\n]+\\]|\\s*$)`,
+  );
+  const cleaned = content.replace(pattern, "").trimEnd();
+
+  return `${cleaned}\n\n${block.trim()}\n`;
+};
 
 const backupPath = (path: string) =>
   `${path}.maxmem-${new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-")}.bak`;
