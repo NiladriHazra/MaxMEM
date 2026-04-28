@@ -1,7 +1,26 @@
 {
   "name": "@bytehumi/maxmem",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local-first handoff capsules for Codex, Claude Code, and OpenCode.",
+  "keywords": [
+    "agents",
+    "ai",
+    "claude",
+    "codex",
+    "handoff",
+    "mcp",
+    "memory",
+    "opencode"
+  ],
+  "homepage": "https://github.com/NiladriHazra/MaxMEM#readme",
+  "bugs": {
+    "url": "https://github.com/NiladriHazra/MaxMEM/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NiladriHazra/MaxMEM.git"
+  },
   "bin": {
     "maxmem": "bin/maxmem"
   },
@@ -9,6 +28,7 @@
     "bin",
     "src",
     "README.md",
+    "LICENSE",
     "assets"
   ],
   "type": "module",

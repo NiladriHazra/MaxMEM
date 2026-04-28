@@ -1,8 +1,15 @@
 <p align="center">
-  <img src="assets/readme/maxmem-hero.png" alt="MaxMEM ink-wash hero" width="100%" />
+  <img src="https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/assets/readme/maxmem-hero.png" alt="MaxMEM ink-wash hero" width="100%" />
 </p>
 
 <h1 align="center">MaxMEM (Maximum Memory)</h1>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@bytehumi/maxmem"><img alt="npm version" src="https://img.shields.io/npm/v/@bytehumi/maxmem.svg" /></a>
+  <a href="https://www.npmjs.com/package/@bytehumi/maxmem"><img alt="npm downloads" src="https://img.shields.io/npm/dm/@bytehumi/maxmem.svg" /></a>
+  <a href="https://www.npmjs.com/package/@bytehumi/maxmem"><img alt="npm license" src="https://img.shields.io/npm/l/@bytehumi/maxmem.svg" /></a>
+  <a href="https://github.com/NiladriHazra/MaxMEM"><img alt="GitHub repository" src="https://img.shields.io/badge/github-MaxMEM-111111.svg" /></a>
+</p>
 
 <p align="center">
   <strong>Local-first handoff memory for Codex, Claude Code, and OpenCode.</strong>
@@ -32,7 +39,7 @@ Raw chat is off by default. The capsule is designed to be short enough for an ag
 
 ## How It Works
 
-![MaxMEM handoff flow](assets/readme/handoff-flow.png)
+![MaxMEM handoff flow](https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/assets/readme/handoff-flow.png)
 
 1. An agent starts, stops, compacts, or calls a MaxMEM command.
 2. MaxMEM reads live git state and the latest known transcript path.
@@ -43,7 +50,7 @@ Raw chat is off by default. The capsule is designed to be short enough for an ag
 
 ## Capsule Anatomy
 
-![MaxMEM capsule anatomy](assets/readme/capsule-anatomy.png)
+![MaxMEM capsule anatomy](https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/assets/readme/capsule-anatomy.png)
 
 The default capsule is privacy-first:
 
