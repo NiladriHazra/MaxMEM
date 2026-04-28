@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { stdin as input } from "node:process";
-import { agentCommands, agentLabels } from "../core/agents";
+import { agentCommand, agentLabels } from "../core/agents";
 import { createCapsule, getInjectionContext, renderCapsule } from "../core/capsule";
 import { getGitContext } from "../core/git";
 import { getLatestCapsule } from "../core/store";
@@ -105,16 +105,15 @@ export const runWrapper = async ({ agent, args, cwd }: RunWrapperInput) => {
     return 0;
   }
 
-  const result = spawnSync(agentCommands[agent], args, {
+  const command = agentCommand({ agent });
+  const result = spawnSync(command, args, {
     cwd,
     env: { ...process.env, MAXMEM_AGENT: agent, MAXMEM_WRAPPER: "1" },
     stdio: "inherit",
   });
 
   if (result.error) {
-    console.error(
-      `Could not launch ${agentCommands[agent]}. Install it or run the agent directly.`,
-    );
+    console.error(`Could not launch ${command}. Install it or run the agent directly.`);
     return 1;
   }
 

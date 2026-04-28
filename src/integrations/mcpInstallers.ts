@@ -8,6 +8,18 @@ import {
 } from "./installerPaths";
 import type { AgentCommandInput, InstallInput } from "./installerTypes";
 
+const opencodeIndexCommand = () => ({
+  template: [
+    "Show this MaxMEM command menu to the user:",
+    "maxmem-handoff: create a compact handoff capsule.",
+    "maxmem-companion: open the local companion UI.",
+    "maxmem-codex: create a handoff and launch Codex.",
+    "maxmem-claude: create a handoff and launch Claude Code.",
+    "maxmem-opencode: create a handoff and launch OpenCode.",
+  ].join("\\n"),
+  description: "Show MaxMEM commands",
+});
+
 const mcpCommand = ({ entryPath }: InstallInput) => ({
   command: process.execPath,
   args: [entryPath, "mcp"],
@@ -35,6 +47,11 @@ const opencodeCommand = ({ entryPath, agent }: AgentCommandInput) => ({
 const opencodeCompanionCommand = ({ entryPath }: InstallInput) => ({
   template: `Run this shell command to open the MaxMEM companion UI: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} companion`,
   description: "Open the MaxMEM companion UI",
+});
+
+const opencodeHandoffCommand = ({ entryPath }: InstallInput) => ({
+  template: `Run this shell command to create a compact MaxMEM handoff: ${shellQuote(process.execPath)} ${shellQuote(entryPath)} handoff --copy`,
+  description: "Create a compact MaxMEM handoff capsule",
 });
 
 const codexConfig = () =>
@@ -66,7 +83,9 @@ const opencodeConfig = ({ entryPath }: InstallInput) => {
       "maxmem-codex": opencodeCommand({ entryPath, agent: "codex" }),
       "maxmem-claude": opencodeCommand({ entryPath, agent: "claude" }),
       "maxmem-opencode": opencodeCommand({ entryPath, agent: "opencode" }),
-      maxmem: opencodeCompanionCommand({ entryPath }),
+      "maxmem-companion": opencodeCompanionCommand({ entryPath }),
+      "maxmem-handoff": opencodeHandoffCommand({ entryPath }),
+      maxmem: opencodeIndexCommand(),
     },
     mcp: {
       ...(config.mcp as Record<string, unknown> | undefined),

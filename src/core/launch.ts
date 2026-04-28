@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { agentCommands, agentLabels } from "./agents";
+import { agentCommand, agentLabels } from "./agents";
 import { createCapsule } from "./capsule";
 import type { Agent } from "./types";
 
@@ -35,7 +35,16 @@ const terminalCommand = ({ cwd, entryPath, agent }: TerminalCommandInput) =>
 const openMacTerminal = ({ command }: OpenTerminalInput) =>
   spawnSync(
     "osascript",
-    ["-e", `tell application "Terminal" to do script ${JSON.stringify(command)}`],
+    [
+      "-e",
+      'tell application "Terminal"',
+      "-e",
+      "activate",
+      "-e",
+      `do script ${JSON.stringify(command)}`,
+      "-e",
+      "end tell",
+    ],
     {
       stdio: "ignore",
     },
@@ -99,7 +108,7 @@ export const launchAgent = ({
 
   const command = terminalCommand({ cwd: resolvedCwd, entryPath: resolvedEntryPath, agent });
   const result = sameWindow
-    ? spawnSync(agentCommands[agent], [], { cwd: resolvedCwd, stdio: "inherit" })
+    ? spawnSync(agentCommand({ agent }), [], { cwd: resolvedCwd, stdio: "inherit" })
     : openTerminal({ command });
   const ok = !result.status && !result.error;
 

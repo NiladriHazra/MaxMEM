@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import type { Agent } from "./types";
 
 export type TranscriptParserName = Agent;
@@ -15,6 +16,10 @@ export interface AgentAdapter {
 export interface AgentFromValueInput {
   value: string | undefined;
   fallback?: Agent;
+}
+
+interface AgentCommandInput {
+  agent: Agent;
 }
 
 export const agents = ["codex", "claude", "opencode"] as const;
@@ -48,9 +53,24 @@ export const agentAdapters: Record<Agent, AgentAdapter> = {
   },
 };
 
-export const agentCommands = Object.fromEntries(
-  agents.map((agent) => [agent, agentAdapters[agent].command]),
-) as Record<Agent, string>;
+const commandEnvNames = {
+  claude: "MAXMEM_CLAUDE_COMMAND",
+  codex: "MAXMEM_CODEX_COMMAND",
+  opencode: "MAXMEM_OPENCODE_COMMAND",
+} satisfies Record<Agent, string>;
+
+const commandCandidates = {
+  claude: ["claude-yolo", "claude"],
+  codex: ["codex"],
+  opencode: ["opencode"],
+} satisfies Record<Agent, string[]>;
+
+const hasCommand = (command: string) => !spawnSync("which", [command], { stdio: "ignore" }).status;
+
+export const agentCommand = ({ agent }: AgentCommandInput) =>
+  process.env[commandEnvNames[agent]] ??
+  commandCandidates[agent].find(hasCommand) ??
+  agentAdapters[agent].command;
 
 export const agentLabels = Object.fromEntries(
   agents.map((agent) => [agent, agentAdapters[agent].label]),

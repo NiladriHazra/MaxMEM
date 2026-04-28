@@ -68,7 +68,7 @@ Prerequisite: Bun must be available because the package executable is a Bun CLI 
 npm install -g @bytehumi/maxmem
 ```
 
-After install, MaxMEM attempts setup automatically. The first normal `maxmem` command also checks setup and repairs missing integration wiring.
+After install, MaxMEM runs setup automatically and wires Codex, Claude Code, and OpenCode. The first normal `maxmem` command also checks setup and repairs missing integration wiring.
 
 Run setup manually only when you want to force reinstall integrations:
 
@@ -130,6 +130,8 @@ Claude Code slash commands:
 
 ```text
 /maxmem
+/maxmem-handoff
+/maxmem-companion
 /maxmem-codex
 /maxmem-claude
 /maxmem-opencode
@@ -139,6 +141,8 @@ OpenCode commands:
 
 ```text
 maxmem
+maxmem-handoff
+maxmem-companion
 maxmem-codex
 maxmem-claude
 maxmem-opencode

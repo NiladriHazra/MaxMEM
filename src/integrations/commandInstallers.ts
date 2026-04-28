@@ -10,6 +10,19 @@ import {
 } from "./installerPaths";
 import type { AgentCommandInput, InstallInput } from "./installerTypes";
 
+const launchAgents = ["codex", "claude", "opencode"] as const;
+
+const commandList = () =>
+  [
+    "MaxMEM commands:",
+    "",
+    "- maxmem-handoff: create a compact handoff capsule for the current repository.",
+    "- maxmem-companion: open the local MaxMEM companion UI.",
+    "- maxmem-codex: create a handoff and launch Codex.",
+    "- maxmem-claude: create a handoff and launch Claude Code.",
+    "- maxmem-opencode: create a handoff and launch OpenCode.",
+  ].join("\n");
+
 const claudeCommand = ({ entryPath, agent }: AgentCommandInput) =>
   [
     `# maxmem-${agent}`,
@@ -23,9 +36,22 @@ const claudeCommand = ({ entryPath, agent }: AgentCommandInput) =>
     "```",
   ].join("\n");
 
+const claudeHandoffCommand = ({ entryPath }: InstallInput) =>
+  [
+    "# maxmem-handoff",
+    "",
+    "Create a compact MaxMEM handoff capsule for the current repository.",
+    "",
+    "Run this shell command:",
+    "",
+    "```sh",
+    `${shellQuote(process.execPath)} ${shellQuote(entryPath)} handoff --copy`,
+    "```",
+  ].join("\n");
+
 const claudeCompanionCommand = ({ entryPath }: InstallInput) =>
   [
-    "# maxmem",
+    "# maxmem-companion",
     "",
     "Open the MaxMEM companion UI for the current repository.",
     "",
@@ -34,6 +60,18 @@ const claudeCompanionCommand = ({ entryPath }: InstallInput) =>
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} companion`,
     "```",
+  ].join("\n");
+
+const claudeIndexCommand = () =>
+  [
+    "# maxmem",
+    "",
+    "Show this MaxMEM command menu to the user. Do not run a shell command unless the user chooses one.",
+    "",
+    commandList()
+      .split("\n")
+      .map((line) => line.replaceAll("maxmem-", "/maxmem-"))
+      .join("\n"),
   ].join("\n");
 
 const codexCommand = ({ entryPath, agent }: AgentCommandInput) =>
@@ -47,15 +85,35 @@ const codexCommand = ({ entryPath, agent }: AgentCommandInput) =>
     "```",
   ].join("\n");
 
+const codexHandoffCommand = ({ entryPath }: InstallInput) =>
+  [
+    "# maxmem-handoff",
+    "",
+    "Create a compact MaxMEM handoff capsule for the current repository.",
+    "",
+    "```sh",
+    `${shellQuote(process.execPath)} ${shellQuote(entryPath)} handoff --copy`,
+    "```",
+  ].join("\n");
+
 const codexCompanionCommand = ({ entryPath }: InstallInput) =>
   [
-    "# maxmem",
+    "# maxmem-companion",
     "",
     "Open the MaxMEM companion UI for the current repository.",
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} companion`,
     "```",
+  ].join("\n");
+
+const codexIndexCommand = () =>
+  [
+    "# maxmem",
+    "",
+    "Show this MaxMEM command menu to the user. Do not run a shell command unless the user chooses one.",
+    "",
+    commandList(),
   ].join("\n");
 
 const codexPluginManifest = () => ({
@@ -118,37 +176,35 @@ const marketplaceWithMaxmem = () => {
 
 const installClaudeCommands = ({ entryPath }: InstallInput) => {
   mkdirSync(claudeCommandsDir(), { recursive: true });
-  writeText(
-    join(claudeCommandsDir(), "maxmem-codex.md"),
-    claudeCommand({ entryPath, agent: "codex" }),
+  launchAgents.map((agent) =>
+    writeText(join(claudeCommandsDir(), `maxmem-${agent}.md`), claudeCommand({ entryPath, agent })),
   );
+  writeText(join(claudeCommandsDir(), "maxmem-handoff.md"), claudeHandoffCommand({ entryPath }));
   writeText(
-    join(claudeCommandsDir(), "maxmem-claude.md"),
-    claudeCommand({ entryPath, agent: "claude" }),
+    join(claudeCommandsDir(), "maxmem-companion.md"),
+    claudeCompanionCommand({ entryPath }),
   );
-  writeText(
-    join(claudeCommandsDir(), "maxmem-opencode.md"),
-    claudeCommand({ entryPath, agent: "opencode" }),
-  );
-  writeText(join(claudeCommandsDir(), "maxmem.md"), claudeCompanionCommand({ entryPath }));
+  writeText(join(claudeCommandsDir(), "maxmem.md"), claudeIndexCommand());
 };
 
 const installCodexCommands = ({ entryPath }: InstallInput) => {
   mkdirSync(codexPluginCommandsDir(), { recursive: true });
   mkdirSync(dirname(codexPluginManifestPath()), { recursive: true });
-  writeText(
-    join(codexPluginCommandsDir(), "maxmem-codex.md"),
-    codexCommand({ entryPath, agent: "codex" }),
+  launchAgents.map((agent) =>
+    writeText(
+      join(codexPluginCommandsDir(), `maxmem-${agent}.md`),
+      codexCommand({ entryPath, agent }),
+    ),
   );
   writeText(
-    join(codexPluginCommandsDir(), "maxmem-claude.md"),
-    codexCommand({ entryPath, agent: "claude" }),
+    join(codexPluginCommandsDir(), "maxmem-handoff.md"),
+    codexHandoffCommand({ entryPath }),
   );
   writeText(
-    join(codexPluginCommandsDir(), "maxmem-opencode.md"),
-    codexCommand({ entryPath, agent: "opencode" }),
+    join(codexPluginCommandsDir(), "maxmem-companion.md"),
+    codexCompanionCommand({ entryPath }),
   );
-  writeText(join(codexPluginCommandsDir(), "maxmem.md"), codexCompanionCommand({ entryPath }));
+  writeText(join(codexPluginCommandsDir(), "maxmem.md"), codexIndexCommand());
   writeJson(codexPluginManifestPath(), codexPluginManifest());
   writeJson(codexMarketplacePath(), marketplaceWithMaxmem());
 };
