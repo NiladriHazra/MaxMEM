@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/assets/readme/maxmem-hero.png" alt="MaxMEM ink-wash hero" width="100%" />
+  <img src="https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/docs/readme/maxmem-hero.png" alt="MaxMEM ink-wash hero" width="100%" />
 </p>
 
 <h1 align="center">MaxMEM (Maximum Memory)</h1>
@@ -39,7 +39,7 @@ Raw chat is off by default. The capsule is designed to be short enough for an ag
 
 ## How It Works
 
-![MaxMEM handoff flow](https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/assets/readme/handoff-flow.png)
+![MaxMEM handoff flow](https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/docs/readme/handoff-flow.png)
 
 1. An agent starts, stops, compacts, or calls a MaxMEM command.
 2. MaxMEM reads live git state and the latest known transcript path.
@@ -50,7 +50,7 @@ Raw chat is off by default. The capsule is designed to be short enough for an ag
 
 ## Capsule Anatomy
 
-![MaxMEM capsule anatomy](https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/assets/readme/capsule-anatomy.png)
+![MaxMEM capsule anatomy](https://raw.githubusercontent.com/NiladriHazra/MaxMEM/main/docs/readme/capsule-anatomy.png)
 
 The default capsule is privacy-first:
 
@@ -160,28 +160,26 @@ It is intentionally local. It does not need a cloud account, hosted database, or
 
 ## Architecture
 
+The repository root is intentionally shallow. Product code lives under `app/`, README media lives under `docs/`, and the root keeps only package metadata, license, lockfile, and this README.
+
 ```text
-bin/                 Bun executable shim
-src/cli/             command routing and option parsing
-src/commands/        CLI command entry points
-src/companion/       local browser companion server, API, view, CSS, client script
-src/core/            adapters, transcript parsing, capsules, git, launch, storage, redaction
-src/integrations/    hooks, setup installers, MCP configs, slash command installers
-src/mcp/             stdio MCP server and tools
-src/ui/              wrapper prompts and terminal UI helpers
-tests/               parser, capsule, and redaction tests
-assets/readme/       README visuals
+app/
+  bin/               npm executable shim
+  scripts/           build, postinstall, and local install helpers
+  src/               CLI, core, integrations, MCP, companion, and UI code
+  tests/             parser, capsule, and redaction tests
+docs/readme/         README PNG visuals
 ```
 
 Key files:
 
-- `src/core/agents.ts`: typed agent adapter registry
-- `src/core/transcript.ts`: Codex, Claude Code, and OpenCode transcript parsing
-- `src/core/capsule.ts`: capsule creation and injection context
-- `src/core/capsuleRender.ts`: rendered handoff formats
-- `src/core/store.ts`: local SQLite storage
-- `src/integrations/installers.ts`: public setup installer entry point
-- `src/mcp/tools.ts`: MCP tool definitions
+- `app/src/core/agents.ts`: typed agent adapter registry
+- `app/src/core/transcript.ts`: Codex, Claude Code, and OpenCode transcript parsing
+- `app/src/core/capsule.ts`: capsule creation and injection context
+- `app/src/core/capsuleRender.ts`: rendered handoff formats
+- `app/src/core/store.ts`: local SQLite storage
+- `app/src/integrations/installers.ts`: public setup installer entry point
+- `app/src/mcp/tools.ts`: MCP tool definitions
 
 ## Development
 
@@ -202,7 +200,7 @@ bun run lint
 bun run format
 ```
 
-There is no committed `dist/cli.js`. The package bin is `bin/maxmem`, and the readable implementation lives in `src`.
+There is no committed `dist/cli.js`. The package bin is `app/bin/maxmem`, and the readable implementation lives in `app/src`.
 
 ## Roadmap
 

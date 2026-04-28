@@ -4,8 +4,8 @@ const { existsSync } = require("node:fs");
 const { homedir } = require("node:os");
 const { join, resolve } = require("node:path");
 
-const packageRoot = resolve(__dirname, "..");
-const binPath = join(packageRoot, "bin", "maxmem");
+const packageRoot = resolve(__dirname, "../..");
+const binPath = join(packageRoot, "app", "bin", "maxmem");
 const bunCandidates = [
   process.env.BUN_INSTALL ? join(process.env.BUN_INSTALL, "bin", "bun") : "",
   join(homedir(), ".bun", "bin", "bun"),

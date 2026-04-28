@@ -14,5 +14,5 @@
     "target": "ESNext",
     "types": ["bun-types"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"]
+  "include": ["app/src/**/*.ts", "app/tests/**/*.ts"]
 }
