@@ -27,7 +27,7 @@ const claudeCommand = ({ entryPath, agent }: AgentCommandInput) =>
   [
     `# maxmem-${agent}`,
     "",
-    `Create a MaxMEM handoff for the current repository, then launch ${agent} in a new terminal.`,
+    `Create a MaxMEM handoff for the current repository, then launch ${agent} from the current terminal app.`,
     "",
     "Run this shell command:",
     "",
@@ -78,7 +78,7 @@ const codexCommand = ({ entryPath, agent }: AgentCommandInput) =>
   [
     `# maxmem-${agent}`,
     "",
-    `Create a MaxMEM handoff for the current repository, then launch ${agent} in a new terminal.`,
+    `Create a MaxMEM handoff for the current repository, then launch ${agent} from the current terminal app.`,
     "",
     "```sh",
     `${shellQuote(process.execPath)} ${shellQuote(entryPath)} launch ${agent} --from codex`,

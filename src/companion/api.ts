@@ -98,13 +98,12 @@ const handoffResponse = async ({ request, cwd }: CompanionRequestInput) => {
   return jsonResponse({ value: capsuleSummary({ capsule }) });
 };
 
-const launchResponse = async ({ request, cwd, entryPath }: CompanionRequestInput) => {
+const launchResponse = async ({ request, cwd }: CompanionRequestInput) => {
   const body = await requestBody(request);
   const agent = agentFromValue({ value: body.agent });
   const result = launchAgent({
     agent,
     cwd: safeCwd(cwd, body.cwd),
-    entryPath,
     sourceAgent: agent,
     ...(body.goal ? { goal: body.goal } : {}),
   });

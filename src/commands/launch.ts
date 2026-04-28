@@ -13,13 +13,12 @@ const targetAgent = (args: string[]) => agentFromValue({ value: args.at(0) });
 const sourceAgent = (args: string[]) =>
   agentFromValue({ value: optionValue({ args, name: "from" }), fallback: targetAgent(args) });
 
-export const runLaunchCommand = ({ args, cwd, entryPath }: LaunchCommandInput) => {
+export const runLaunchCommand = ({ args, cwd }: LaunchCommandInput) => {
   const agent = targetAgent(args);
   const goal = optionValue({ args, name: "goal" });
   const result = launchAgent({
     agent,
     cwd,
-    entryPath,
     sourceAgent: sourceAgent(args),
     sameWindow: hasFlag({ args, name: "same-window" }),
     ...(goal ? { goal } : {}),

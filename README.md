@@ -106,23 +106,23 @@ maxmem inspect --capsule
 
 ## Commands
 
-| Command                               | Purpose                                              |
-| ------------------------------------- | ---------------------------------------------------- |
-| `maxmem codex [args...]`              | Launch Codex through the MaxMEM wrapper              |
-| `maxmem claude [args...]`             | Launch Claude Code through the MaxMEM wrapper        |
-| `maxmem opencode [args...]`           | Launch OpenCode through the MaxMEM wrapper           |
-| `maxmem handoff`                      | Create and print a compact handoff capsule           |
-| `maxmem handoff --copy`               | Copy the capsule on macOS                            |
-| `maxmem handoff --select`             | Choose exactly which sections to include             |
-| `maxmem handoff --verbosity standard` | Include more extracted context without raw chat      |
-| `maxmem handoff --verbosity full`     | Include redacted raw snippets when selected          |
-| `maxmem inspect`                      | Inspect latest transcript and capsule state          |
-| `maxmem launch <agent>`               | Create a handoff and open an agent in a new terminal |
-| `maxmem companion`                    | Open the local capsule viewer and launcher           |
-| `maxmem mcp`                          | Run the stdio MCP server                             |
-| `maxmem inject`                       | Print latest injectable context for this repo        |
-| `maxmem setup`                        | Install or repair integrations                       |
-| `maxmem status --verbose`             | Show repository handoff status                       |
+| Command                               | Purpose                                                        |
+| ------------------------------------- | -------------------------------------------------------------- |
+| `maxmem codex [args...]`              | Launch Codex through the MaxMEM wrapper                        |
+| `maxmem claude [args...]`             | Launch Claude Code through the MaxMEM wrapper                  |
+| `maxmem opencode [args...]`           | Launch OpenCode through the MaxMEM wrapper                     |
+| `maxmem handoff`                      | Create and print a compact handoff capsule                     |
+| `maxmem handoff --copy`               | Copy the capsule on macOS                                      |
+| `maxmem handoff --select`             | Choose exactly which sections to include                       |
+| `maxmem handoff --verbosity standard` | Include more extracted context without raw chat                |
+| `maxmem handoff --verbosity full`     | Include redacted raw snippets when selected                    |
+| `maxmem inspect`                      | Inspect latest transcript and capsule state                    |
+| `maxmem launch <agent>`               | Create a handoff and open an agent in the current terminal app |
+| `maxmem companion`                    | Open the local capsule viewer and launcher                     |
+| `maxmem mcp`                          | Run the stdio MCP server                                       |
+| `maxmem inject`                       | Print latest injectable context for this repo                  |
+| `maxmem setup`                        | Install or repair integrations                                 |
+| `maxmem status --verbose`             | Show repository handoff status                                 |
 
 ## Agent Shortcuts
 
@@ -147,6 +147,8 @@ maxmem-codex
 maxmem-claude
 maxmem-opencode
 ```
+
+On macOS, launch shortcuts opened from VS Code or Cursor create a new integrated terminal in the active workspace. From Terminal.app they open a new Terminal window.
 
 Codex receives the same handoff behavior through hooks, MCP, and the local command plugin.
 
