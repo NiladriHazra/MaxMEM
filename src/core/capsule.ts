@@ -151,6 +151,83 @@ const renderPrivacy = ({ options, preset }: RenderPrivacyInput) => [
   "- Secrets redaction: enabled",
 ];
 
+export const renderAgentContext = ({ capsule }: RenderCapsuleInput) => {
+  const renderOptions = resolveOptions({
+    options: { rawChat: false },
+    verbosity: resolveVerbosity(),
+  });
+
+  return [
+    "# MaxMEM Handoff",
+    "",
+    "Use this as continuation context. Trust the live filesystem and git state over this capsule if they disagree.",
+    "",
+    "## Source",
+    `- Agent: ${capsule.sourceAgent}`,
+    `- Created: ${capsule.createdAt}`,
+    `- Repo: ${capsule.repoRoot}`,
+    `- Branch: ${capsule.branch}`,
+    `- Goal: ${capsule.goal}`,
+    "",
+    "## Summary",
+    capsule.summary,
+    "",
+    ...(renderOptions.files
+      ? [
+          renderList({
+            title: "## Changed Files",
+            items: capsule.files,
+            empty: "No changed files detected",
+          }),
+          "",
+        ]
+      : []),
+    renderList({
+      title: "## Recent Commits",
+      items: capsule.git.recentCommits,
+      empty: "No recent commits found",
+    }),
+    "",
+    ...(renderOptions.commands
+      ? [
+          renderList({
+            title: "## Commands",
+            items: capsule.commands,
+            empty: "No commands recorded",
+          }),
+          "",
+        ]
+      : []),
+    ...(renderOptions.decisions
+      ? [
+          renderList({
+            title: "## Decisions",
+            items: capsule.decisions,
+            empty: "No decisions recorded",
+          }),
+          "",
+        ]
+      : []),
+    ...(renderOptions.blockers
+      ? [
+          renderList({
+            title: "## Blockers",
+            items: capsule.blockers,
+            empty: "No blockers recorded",
+          }),
+          "",
+        ]
+      : []),
+    "## Next Prompt",
+    capsule.nextPrompt,
+    "",
+    "## Privacy",
+    `- Verbosity preset: ${capsule.privacy.preset}`,
+    "- Raw chat included: false",
+    "- Secrets redaction: enabled",
+  ].join("\n");
+};
+
 export const renderCapsule = ({ capsule, options }: RenderCapsuleInput) => {
   const verbosityConfig = resolveVerbosity();
   const renderOptions = resolveOptions({ options, verbosity: verbosityConfig });
@@ -225,9 +302,9 @@ export const getInjectionContext = ({ cwd }: InjectionContextInput) => {
   return capsule
     ? [
         "MaxMEM found a previous handoff capsule for this repository.",
-        "Use it as continuation context, but trust the filesystem and git state over the capsule if they disagree.",
+        "The handoff below is formatted for agent context.",
         "",
-        renderCapsule({ capsule, options: { rawChat: false } }),
+        renderAgentContext({ capsule }),
       ].join("\n")
     : "";
 };

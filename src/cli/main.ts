@@ -1,12 +1,16 @@
 #!/usr/bin/env bun
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { runCompanionCommand } from "../commands/companion";
 import { runHandoffCommand } from "../commands/handoff";
 import { runInspectCommand } from "../commands/inspect";
+import { runLaunchCommand } from "../commands/launch";
+import { ensureAutoSetup, runSetupCommand } from "../commands/setup";
 import { showStatus } from "../commands/status";
 import { agentBySessionStartHook, agentByStopHook, isAgent } from "../core/agents";
 import { getInjectionContext } from "../core/capsule";
 import type { Agent } from "../core/types";
+import { runMcpServer } from "../mcp/server";
 import {
   handleClaudeStatusLine,
   handleSessionStartHook,
@@ -48,7 +52,11 @@ const printHelp = () => {
       "  maxmem opencode [args...]",
       "  maxmem handoff [--agent codex|claude|opencode] [--goal text] [--verbosity compact|standard|full] [--copy] [--select]",
       "  maxmem inspect [--agent codex|claude|opencode] [--transcript path] [--capsule]",
+      "  maxmem launch codex|claude|opencode [--goal text] [--same-window]",
+      "  maxmem companion [--port 3838]",
+      "  maxmem mcp",
       "  maxmem inject",
+      "  maxmem setup [--quiet]",
       "  maxmem install-hooks [codex|claude|opencode|all]",
       "  maxmem status [--verbose]",
       "",
@@ -102,6 +110,8 @@ const runStatusLine = async ({ args }: ArgsInput) => {
 };
 
 const main = async ({ command, args }: CommandInput) => {
+  ensureAutoSetup({ command, entryPath });
+
   if (!command || command === "help" || command === "--help" || command === "-h") {
     printHelp();
     return 0;
@@ -121,6 +131,21 @@ const main = async ({ command, args }: CommandInput) => {
     return 0;
   }
 
+  if (command === "launch") {
+    runLaunchCommand({ args, cwd: process.cwd(), entryPath });
+    return 0;
+  }
+
+  if (command === "companion") {
+    await runCompanionCommand({ args, cwd: process.cwd(), entryPath });
+    return 0;
+  }
+
+  if (command === "mcp") {
+    await runMcpServer();
+    return 0;
+  }
+
   if (command === "inject") {
     console.log(
       getInjectionContext({ cwd: process.cwd() }) || "No maxMEM handoff found for this repo.",
@@ -130,6 +155,11 @@ const main = async ({ command, args }: CommandInput) => {
 
   if (command === "install-hooks") {
     installHooks({ args });
+    return 0;
+  }
+
+  if (command === "setup") {
+    runSetupCommand({ args, entryPath });
     return 0;
   }
 

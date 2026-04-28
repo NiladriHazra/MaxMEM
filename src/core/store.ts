@@ -22,6 +22,17 @@ interface LatestSessionInput {
   agent?: Agent;
 }
 
+interface ListCapsulesInput {
+  repoRoot: string;
+  branch?: string;
+  limit?: number;
+}
+
+interface ListSessionsInput {
+  repoRoot: string;
+  limit?: number;
+}
+
 interface CapsuleRow {
   id: string;
   repo_root: string;
@@ -270,4 +281,47 @@ export const getLatestSession = ({ repoRoot, agent }: LatestSessionInput) => {
   db.close();
 
   return session;
+};
+
+export const listCapsules = ({ repoRoot, branch, limit = 12 }: ListCapsulesInput) => {
+  const db = openStore();
+  const rows = branch
+    ? (db
+        .query(`
+      select * from capsules
+      where repo_root = ? and branch = ?
+      order by created_at desc
+      limit ?
+    `)
+        .all(repoRoot, branch, limit) as CapsuleRow[])
+    : (db
+        .query(`
+      select * from capsules
+      where repo_root = ?
+      order by created_at desc
+      limit ?
+    `)
+        .all(repoRoot, limit) as CapsuleRow[]);
+  const capsules = rows.map(rowToCapsule);
+
+  db.close();
+
+  return capsules;
+};
+
+export const listSessions = ({ repoRoot, limit = 12 }: ListSessionsInput) => {
+  const db = openStore();
+  const rows = db
+    .query(`
+      select * from sessions
+      where repo_root = ?
+      order by updated_at desc
+      limit ?
+    `)
+    .all(repoRoot, limit) as SessionRow[];
+  const sessions = rows.map(rowToSession);
+
+  db.close();
+
+  return sessions;
 };

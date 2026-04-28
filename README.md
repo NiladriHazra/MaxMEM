@@ -25,7 +25,12 @@ Raw chat is not exported by default.
 ```sh
 bun install
 bun link
-maxmem install-hooks
+```
+
+MaxMEM also runs setup automatically on install and on the first normal `maxmem` command. To force it again:
+
+```sh
+maxmem setup
 ```
 
 For local development, run the CLI through the Bun shim:
@@ -56,6 +61,12 @@ maxmem inspect --agent claude
 maxmem inspect --transcript path/to/session.jsonl
 maxmem inspect --capsule
 
+maxmem launch codex          # create a handoff and open Codex in a new terminal
+maxmem launch claude         # create a handoff and open Claude Code in a new terminal
+maxmem launch opencode       # create a handoff and open OpenCode in a new terminal
+maxmem companion             # open the local capsule viewer and launcher
+maxmem mcp                   # run the stdio MCP server
+
 maxmem inject                # print the latest injectable context for this repo
 maxmem install-hooks         # install Codex, Claude Code, and OpenCode integrations
 maxmem status                # show latest repo handoff status
@@ -83,9 +94,9 @@ The default stays privacy-first. Use `--raw-chat` or `--verbosity full` only whe
 
 ## Integrations
 
-- Codex: installs `SessionStart` and `Stop` hooks in `~/.codex/hooks.json`.
-- Claude Code: installs `SessionStart`, `Stop`, and `statusLine` entries in `~/.claude/settings.json`.
-- OpenCode: installs a plugin in `~/.config/opencode/plugins/maxmem.js`.
+- Codex: installs `SessionStart` and `Stop` hooks, the MaxMEM MCP server, and a local command plugin.
+- Claude Code: installs hooks, status line, MCP config, and `/maxmem-*` slash commands.
+- OpenCode: installs a plugin, MCP config, and `maxmem-*` commands.
 
 ## Project Layout
 
@@ -102,8 +113,10 @@ Core modules:
 - `src/core/agents.ts`: typed agent adapter registry
 - `src/core/transcript.ts`: agent-aware transcript parsing
 - `src/core/capsule.ts`: capsule creation and rendering
+- `src/core/launch.ts`: cross-agent launch helpers
 - `src/core/store.ts`: local SQLite storage
 - `src/core/redaction.ts`: secret and raw-chat redaction
+- `src/mcp/server.ts`: stdio MCP server
 
 ## Development
 
@@ -128,5 +141,5 @@ bun run format
 
 - Add more provider-specific transcript fixtures as formats evolve.
 - Add package publishing automation once the package name is finalized.
-- Add an MCP server for agents that prefer tool calls over hooks.
-- Add editor or desktop companions for viewing capsules and launching handoffs.
+- Harden Linux and Windows terminal launching beyond the macOS path.
+- Add richer companion history filters and per-repo capsule search.

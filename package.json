@@ -20,9 +20,14 @@
     "dev": "bun bin/maxmem",
     "format": "bunx oxfmt --write .",
     "lint": "bunx oxlint .",
+    "postinstall": "bun bin/maxmem --help >/dev/null 2>&1 || true",
     "prepack": "bun run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bun": "latest",
