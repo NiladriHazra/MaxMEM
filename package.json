@@ -9,8 +9,7 @@
     "bin",
     "src",
     "README.md",
-    "documentation",
-    "media"
+    "assets"
   ],
   "type": "module",
   "publishConfig": {

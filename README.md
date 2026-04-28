@@ -1,26 +1,41 @@
 # MaxMEM
 
-MaxMEM is a local-first handoff layer for AI coding agents. It helps Codex, Claude Code, and OpenCode continue the same repo work without copying an entire chat transcript.
+![MaxMEM ink-wash hero](assets/readme/hero.png)
 
-MaxMEM ships as a wrapper plus hook/plugin installer:
+MaxMEM is a local-first handoff layer for AI coding agents. It lets Codex, Claude Code, and OpenCode continue the same repository work without copying an entire chat transcript.
+
+The project is intentionally small: a Bun CLI, local SQLite storage, hook installers, transcript parsing, redaction, and compact handoff capsules.
+
+## Why It Exists
+
+Agent sessions are useful, but handoffs are usually messy. MaxMEM stores the parts that matter:
+
+- repository and branch
+- changed files
+- recent commits
+- transcript-derived commands, files, decisions, and blockers
+- source agent
+- current goal
+- next recommended prompt
+
+Raw chat is not exported by default.
+
+## Install
 
 ```sh
 bun install
 bun link
 maxmem install-hooks
-bun run dev codex
-bun run dev claude
-bun run dev opencode
 ```
 
-For local development:
+For local development, run the CLI through the Bun shim:
 
 ```sh
+bun run dev status
 bun run dev handoff --select
-bun run build
 ```
 
-There is no committed `dist/cli.js`. The package bin is a tiny Bun shim in `bin/maxmem`, and the readable implementation lives in `src`.
+There is no committed `dist/cli.js`. The package bin is `bin/maxmem`, and the readable implementation lives in `src`.
 
 ## Commands
 
@@ -28,31 +43,90 @@ There is no committed `dist/cli.js`. The package bin is a tiny Bun shim in `bin/
 maxmem codex [args...]       # launch Codex through the MaxMEM wrapper
 maxmem claude [args...]      # launch Claude Code through the MaxMEM wrapper
 maxmem opencode [args...]    # launch OpenCode through the MaxMEM wrapper
-maxmem handoff               # create and print a handoff capsule
+
+maxmem handoff               # create and print a compact handoff capsule
 maxmem handoff --copy        # copy the capsule on macOS
 maxmem handoff --select      # choose exactly what to include
 maxmem handoff --raw-chat    # explicitly include redacted raw chat snippets
+maxmem handoff --verbosity standard
+maxmem handoff --verbosity full
+
+maxmem inspect               # inspect latest parsed transcript/capsule state
+maxmem inspect --agent claude
+maxmem inspect --transcript path/to/session.jsonl
+maxmem inspect --capsule
+
 maxmem inject                # print the latest injectable context for this repo
 maxmem install-hooks         # install Codex, Claude Code, and OpenCode integrations
 maxmem status                # show latest repo handoff status
+maxmem status --verbose
 ```
 
-## What Gets Shared
+## Handoff Flow
 
-By default, MaxMEM stores a compact capsule:
+1. An agent hook or wrapper calls MaxMEM.
+2. MaxMEM reads git state and the latest known transcript path.
+3. The agent adapter selects the right transcript parser.
+4. Transcript parsing extracts commands, files, decisions, blockers, and optional raw chat snippets.
+5. Redaction runs before any capsule is saved or rendered.
+6. The next agent receives compact context through hooks, wrapper injection, or clipboard export.
 
-- repo and branch
-- changed files
-- git status and diff stats
-- transcript-derived commands, decisions, and blockers when available
-- source agent
-- current goal
-- recommended next prompt
+## Verbosity
 
-It does not export raw chat by default.
+MaxMEM has three presets:
 
-## Docs
+- `compact`: default, no raw chat, short extracted context
+- `standard`: more transcript-derived context, still no raw chat
+- `full`: includes redacted raw chat snippets when explicitly selected
 
-- [Architecture](documentation/ARCHITECTURE.md)
-- [Demo](documentation/DEMO.md)
-- [Roadmap](documentation/ROADMAP.md)
+The default stays privacy-first. Use `--raw-chat` or `--verbosity full` only when you want raw snippets included.
+
+## Integrations
+
+- Codex: installs `SessionStart` and `Stop` hooks in `~/.codex/hooks.json`.
+- Claude Code: installs `SessionStart`, `Stop`, and `statusLine` entries in `~/.claude/settings.json`.
+- OpenCode: installs a plugin in `~/.config/opencode/plugins/maxmem.js`.
+
+## Project Layout
+
+```text
+bin/       Bun executable shim
+src/       CLI, commands, core logic, integrations, and UI
+tests/     parser, capsule, and redaction tests
+scripts/   build and local install helpers
+assets/    README and project assets
+```
+
+Core modules:
+
+- `src/core/agents.ts`: typed agent adapter registry
+- `src/core/transcript.ts`: agent-aware transcript parsing
+- `src/core/capsule.ts`: capsule creation and rendering
+- `src/core/store.ts`: local SQLite storage
+- `src/core/redaction.ts`: secret and raw-chat redaction
+
+## Development
+
+```sh
+bun run format
+bun run build
+npx tsc --noEmit
+bun run lint
+bun test
+```
+
+Before committing, run:
+
+```sh
+bun run build
+npx tsc --noEmit
+bun run lint
+bun run format
+```
+
+## Roadmap
+
+- Add more provider-specific transcript fixtures as formats evolve.
+- Add package publishing automation once the package name is finalized.
+- Add an MCP server for agents that prefer tool calls over hooks.
+- Add editor or desktop companions for viewing capsules and launching handoffs.
