@@ -12,6 +12,10 @@ export interface AskBooleanInput {
   defaultValue: boolean;
 }
 
+export interface SelectExportOptionsInput {
+  defaults?: ExportOptions;
+}
+
 const answer = async ({ prompt }: AskInput) => {
   const rl = createInterface({ input, output });
   const value = await rl.question(prompt);
@@ -39,9 +43,9 @@ export const askBoolean = async ({ prompt, defaultValue }: AskBooleanInput) => {
   return value === "y" || value === "yes";
 };
 
-export const selectExportOptions = async () => {
-  const defaults = defaultExportOptions();
-
+export const selectExportOptions = async ({
+  defaults = defaultExportOptions(),
+}: SelectExportOptionsInput = {}) => {
   return {
     files: await askBoolean({ prompt: "Include changed files?", defaultValue: defaults.files }),
     commands: await askBoolean({ prompt: "Include commands?", defaultValue: defaults.commands }),

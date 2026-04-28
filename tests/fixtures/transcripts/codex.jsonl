@@ -1,0 +1,3 @@
+{"type":"message","role":"user","content":"Please update src/core/capsule.ts and run $ bun test"}
+{"type":"function_call","name":"shell","arguments":"{\"cmd\":\"bun run lint\"}"}
+{"type":"message","role":"assistant","content":"Decision: use compact capsules. Blocker: failing test in tests/capsule.test.ts"}

@@ -2,6 +2,8 @@ export type Agent = "codex" | "claude" | "opencode";
 
 export type CapsuleSection = "files" | "commands" | "decisions" | "blockers" | "rawChat";
 
+export type VerbosityPreset = "compact" | "standard" | "full";
+
 export interface GitContext {
   cwd: string;
   repoRoot: string;
@@ -17,10 +19,16 @@ export interface GitContext {
 export interface HandoffPrivacy {
   includeRawChat: boolean;
   redacted: boolean;
+  preset: VerbosityPreset;
 }
 
 export interface TranscriptSummary {
   path: string;
+  agent: Agent;
+  parser: string;
+  lineCount: number;
+  messageCount: number;
+  toolCallCount: number;
   userMessages: string[];
   assistantMessages: string[];
   commands: string[];

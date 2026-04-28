@@ -1,0 +1,4 @@
+{"role":"user","parts":[{"type":"text","text":"Change src/core/agents.ts"}]}
+{"role":"assistant","content":"We will use the adapter registry."}
+{"type":"tool","name":"bash","input":{"command":"bun run build"}}
+{"role":"assistant","content":"Blocker: cannot parse old logs yet.","parts":[{"type":"tool","name":"edit","input":{"path":"src/core/transcript.ts"}}]}

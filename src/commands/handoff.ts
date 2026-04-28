@@ -1,6 +1,7 @@
 import { createCapsule, defaultExportOptions, renderCapsule } from "../core/capsule";
-import { isAgent } from "../core/agents";
-import type { Agent, ExportOptions } from "../core/types";
+import { agentFromValue } from "../core/agents";
+import type { ExportOptions } from "../core/types";
+import { resolveVerbosity, type VerbosityConfig } from "../core/verbosity";
 import { copyText } from "../platform/clipboard";
 import { hasFlag, optionValue } from "../cli/options";
 import { selectExportOptions } from "../ui/prompts";
@@ -10,10 +11,15 @@ export interface HandoffCommandInput {
   cwd: string;
 }
 
+interface ExportOptionsInput {
+  args: string[];
+  verbosity: VerbosityConfig;
+}
+
 const selectedAgent = (args: string[]) => {
   const value = optionValue({ args, name: "agent" });
 
-  return value && isAgent(value) ? (value as Agent) : "codex";
+  return agentFromValue({ value });
 };
 
 const flagOptions = (args: string[]) => ({
@@ -21,21 +27,31 @@ const flagOptions = (args: string[]) => ({
   commands: !hasFlag({ args, name: "no-commands" }),
   decisions: !hasFlag({ args, name: "no-decisions" }),
   blockers: !hasFlag({ args, name: "no-blockers" }),
-  rawChat: hasFlag({ args, name: "raw-chat" }),
+  ...(hasFlag({ args, name: "raw-chat" }) ? { rawChat: true } : {}),
+  ...(hasFlag({ args, name: "no-raw-chat" }) ? { rawChat: false } : {}),
 });
 
-const exportOptions = async (args: string[]) =>
+const selectedVerbosity = (args: string[]) =>
+  resolveVerbosity({ preset: optionValue({ args, name: "verbosity" }) });
+
+const exportOptions = async ({ args, verbosity }: ExportOptionsInput) =>
   hasFlag({ args, name: "select" })
-    ? await selectExportOptions()
-    : ({ ...defaultExportOptions(), ...flagOptions(args) } satisfies ExportOptions);
+    ? await selectExportOptions({ defaults: verbosity.exportOptions })
+    : ({
+        ...defaultExportOptions(),
+        ...verbosity.exportOptions,
+        ...flagOptions(args),
+      } satisfies ExportOptions);
 
 export const runHandoffCommand = async ({ args, cwd }: HandoffCommandInput) => {
   const goal = optionValue({ args, name: "goal" });
-  const options = await exportOptions(args);
+  const verbosity = selectedVerbosity(args);
+  const options = await exportOptions({ args, verbosity });
   const capsule = createCapsule({
     agent: selectedAgent(args),
     cwd,
     options,
+    verbosity: verbosity.preset,
     ...(goal ? { goal } : {}),
   });
   const rendered = renderCapsule({ capsule, options });

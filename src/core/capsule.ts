@@ -4,6 +4,7 @@ import { getGitContext } from "./git";
 import { getLatestCapsule, getLatestSession, saveCapsule } from "./store";
 import { redactList, redactText } from "./redaction";
 import { parseTranscript } from "./transcript";
+import { resolveVerbosity, type VerbosityConfig } from "./verbosity";
 
 export interface CreateCapsuleInput {
   agent: Agent;
@@ -11,6 +12,7 @@ export interface CreateCapsuleInput {
   goal?: string;
   transcriptPath?: string;
   options?: Partial<ExportOptions>;
+  verbosity?: string;
 }
 
 export interface InjectionContextInput {
@@ -40,21 +42,23 @@ interface MergeItemsInput {
 
 interface RenderPrivacyInput {
   options: ExportOptions;
+  preset: string;
+}
+
+interface ResolveOptionsInput {
+  options?: Partial<ExportOptions> | undefined;
+  verbosity: VerbosityConfig;
 }
 
 const cleanGoal = (goal: string | undefined) =>
   redactText({ text: goal?.trim() || "Continue the current implementation safely." });
 
 export const defaultExportOptions = () => ({
-  files: true,
-  commands: true,
-  decisions: true,
-  blockers: true,
-  rawChat: false,
+  ...resolveVerbosity().exportOptions,
 });
 
-const resolveOptions = (options: Partial<ExportOptions> | undefined) => ({
-  ...defaultExportOptions(),
+const resolveOptions = ({ options, verbosity }: ResolveOptionsInput) => ({
+  ...verbosity.exportOptions,
   ...options,
 });
 
@@ -90,13 +94,19 @@ export const createCapsule = ({
   goal,
   transcriptPath,
   options,
+  verbosity,
 }: CreateCapsuleInput) => {
   const git = getGitContext({ cwd });
   const latestSession = getLatestSession({ repoRoot: git.repoRoot, agent });
   const resolvedTranscriptPath = transcriptPath ?? latestSession?.transcriptPath ?? "";
-  const transcript = parseTranscript({ path: resolvedTranscriptPath });
+  const verbosityConfig = resolveVerbosity({ preset: verbosity });
+  const transcript = parseTranscript({
+    path: resolvedTranscriptPath,
+    agent,
+    verbosity: verbosityConfig.preset,
+  });
   const resolvedGoal = cleanGoal(goal);
-  const exportOptions = resolveOptions(options);
+  const exportOptions = resolveOptions({ options, verbosity: verbosityConfig });
   const capsule: HandoffCapsule = {
     id: randomUUID(),
     repoRoot: git.repoRoot,
@@ -118,6 +128,7 @@ export const createCapsule = ({
     privacy: {
       includeRawChat: exportOptions.rawChat,
       redacted: true,
+      preset: verbosityConfig.preset,
     },
     createdAt: new Date().toISOString(),
   };
@@ -133,14 +144,16 @@ const renderList = ({ title, items, empty }: RenderListInput) =>
     ...(items.length ? redactList({ values: items }).map((item) => `- ${item}`) : [`- ${empty}`]),
   ].join("\n");
 
-const renderPrivacy = ({ options }: RenderPrivacyInput) => [
+const renderPrivacy = ({ options, preset }: RenderPrivacyInput) => [
   "Privacy:",
+  `- Verbosity preset: ${preset}`,
   `- Raw chat included: ${options.rawChat ? "true" : "false"}`,
   "- Secrets redaction: enabled",
 ];
 
 export const renderCapsule = ({ capsule, options }: RenderCapsuleInput) => {
-  const renderOptions = resolveOptions(options);
+  const verbosityConfig = resolveVerbosity();
+  const renderOptions = resolveOptions({ options, verbosity: verbosityConfig });
 
   return [
     "<maxmem_handoff>",
@@ -200,7 +213,7 @@ export const renderCapsule = ({ capsule, options }: RenderCapsuleInput) => {
     "Next recommended prompt:",
     capsule.nextPrompt,
     "",
-    ...renderPrivacy({ options: renderOptions }),
+    ...renderPrivacy({ options: renderOptions, preset: capsule.privacy.preset }),
     "</maxmem_handoff>",
   ].join("\n");
 };

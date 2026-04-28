@@ -2,8 +2,9 @@
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { runHandoffCommand } from "../commands/handoff";
+import { runInspectCommand } from "../commands/inspect";
 import { showStatus } from "../commands/status";
-import { isAgent } from "../core/agents";
+import { agentBySessionStartHook, agentByStopHook, isAgent } from "../core/agents";
 import { getInjectionContext } from "../core/capsule";
 import type { Agent } from "../core/types";
 import {
@@ -45,7 +46,8 @@ const printHelp = () => {
       "  maxmem codex [args...]",
       "  maxmem claude [args...]",
       "  maxmem opencode [args...]",
-      "  maxmem handoff [--agent codex|claude|opencode] [--goal text] [--copy] [--select]",
+      "  maxmem handoff [--agent codex|claude|opencode] [--goal text] [--verbosity compact|standard|full] [--copy] [--select]",
+      "  maxmem inspect [--agent codex|claude|opencode] [--transcript path] [--capsule]",
       "  maxmem inject",
       "  maxmem install-hooks [codex|claude|opencode|all]",
       "  maxmem status [--verbose]",
@@ -80,29 +82,16 @@ const runAgent = async ({ command, args }: AgentCommandInput) => {
 
 const runHook = async ({ args }: ArgsInput) => {
   const hook = args.at(0);
+  const sessionStartAgent = hook ? agentBySessionStartHook(hook) : undefined;
+  const stopAgent = hook ? agentByStopHook(hook) : undefined;
 
-  if (hook === "codex-session-start") {
-    await handleSessionStartHook({ agent: "codex" });
+  if (sessionStartAgent) {
+    await handleSessionStartHook({ agent: sessionStartAgent });
     return;
   }
 
-  if (hook === "claude-session-start") {
-    await handleSessionStartHook({ agent: "claude" });
-    return;
-  }
-
-  if (hook === "codex-stop") {
-    await handleStopHook({ agent: "codex" });
-    return;
-  }
-
-  if (hook === "claude-stop") {
-    await handleStopHook({ agent: "claude" });
-    return;
-  }
-
-  if (hook === "opencode-stop") {
-    await handleStopHook({ agent: "opencode" });
+  if (stopAgent) {
+    await handleStopHook({ agent: stopAgent });
   }
 };
 
@@ -124,6 +113,11 @@ const main = async ({ command, args }: CommandInput) => {
 
   if (command === "handoff") {
     await runHandoffCommand({ args, cwd: process.cwd() });
+    return 0;
+  }
+
+  if (command === "inspect") {
+    runInspectCommand({ args, cwd: process.cwd() });
     return 0;
   }
 

@@ -30,6 +30,7 @@ const capsule: HandoffCapsule = {
   privacy: {
     includeRawChat: true,
     redacted: true,
+    preset: "compact",
   },
   createdAt: "2026-04-27T00:00:00.000Z",
 };

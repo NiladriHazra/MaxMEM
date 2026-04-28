@@ -81,7 +81,7 @@ const schemaStatements = [
     transcript_path text not null default '',
     next_prompt text not null,
     git_json text not null,
-    privacy_json text not null default '{"includeRawChat":false,"redacted":true}',
+    privacy_json text not null default '{"includeRawChat":false,"redacted":true,"preset":"compact"}',
     created_at text not null
   )
   `,
@@ -98,7 +98,7 @@ const schemaStatements = [
 const migrations = [
   "alter table capsules add column raw_chat_json text not null default '[]'",
   "alter table capsules add column transcript_path text not null default ''",
-  'alter table capsules add column privacy_json text not null default \'{"includeRawChat":false,"redacted":true}\'',
+  'alter table capsules add column privacy_json text not null default \'{"includeRawChat":false,"redacted":true,"preset":"compact"}\'',
 ];
 
 export const dataDirectory = () => process.env.MAXMEM_DATA_DIR ?? join(homedir(), ".maxmem");
@@ -120,24 +120,32 @@ export const openStore = () => {
   return db;
 };
 
-const rowToCapsule = (row: CapsuleRow) => ({
-  id: row.id,
-  repoRoot: row.repo_root,
-  branch: row.branch,
-  sourceAgent: row.source_agent,
-  goal: row.goal,
-  summary: row.summary,
-  files: JSON.parse(row.files_json) as string[],
-  commands: JSON.parse(row.commands_json) as string[],
-  decisions: JSON.parse(row.decisions_json) as string[],
-  blockers: JSON.parse(row.blockers_json) as string[],
-  rawChat: JSON.parse(row.raw_chat_json) as string[],
-  transcriptPath: row.transcript_path,
-  nextPrompt: row.next_prompt,
-  git: JSON.parse(row.git_json) as HandoffCapsule["git"],
-  privacy: JSON.parse(row.privacy_json) as HandoffCapsule["privacy"],
-  createdAt: row.created_at,
-});
+const rowToCapsule = (row: CapsuleRow) => {
+  const privacy = JSON.parse(row.privacy_json) as Partial<HandoffCapsule["privacy"]>;
+
+  return {
+    id: row.id,
+    repoRoot: row.repo_root,
+    branch: row.branch,
+    sourceAgent: row.source_agent,
+    goal: row.goal,
+    summary: row.summary,
+    files: JSON.parse(row.files_json) as string[],
+    commands: JSON.parse(row.commands_json) as string[],
+    decisions: JSON.parse(row.decisions_json) as string[],
+    blockers: JSON.parse(row.blockers_json) as string[],
+    rawChat: JSON.parse(row.raw_chat_json) as string[],
+    transcriptPath: row.transcript_path,
+    nextPrompt: row.next_prompt,
+    git: JSON.parse(row.git_json) as HandoffCapsule["git"],
+    privacy: {
+      includeRawChat: privacy.includeRawChat ?? false,
+      redacted: privacy.redacted ?? true,
+      preset: privacy.preset ?? "compact",
+    },
+    createdAt: row.created_at,
+  };
+};
 
 const rowToSession = (row: SessionRow) => ({
   id: row.id,
