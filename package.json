@@ -1,6 +1,6 @@
 {
   "name": "@bytehumi/maxmem",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Local-first handoff capsules for Codex, Claude Code, and OpenCode.",
   "keywords": [
     "agents",
@@ -27,6 +27,7 @@
   "files": [
     "bin",
     "src",
+    "scripts/postinstall.cjs",
     "README.md",
     "LICENSE",
     "assets"
@@ -40,7 +41,7 @@
     "dev": "bun bin/maxmem",
     "format": "bunx oxfmt --write .",
     "lint": "bunx oxlint .",
-    "postinstall": "bun bin/maxmem setup --quiet >/dev/null 2>&1 || true",
+    "postinstall": "node scripts/postinstall.cjs",
     "prepack": "bun run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
