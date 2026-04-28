@@ -30,6 +30,12 @@ interface CapsuleSummaryInput {
   capsule: HandoffCapsule;
 }
 
+interface CompanionRoute {
+  path: string;
+  method?: string;
+  handler: (input: CompanionRequestInput) => Response | Promise<Response>;
+}
+
 const jsonResponse = ({ value, status = 200 }: JsonResponseInput) =>
   new Response(JSON.stringify(value, null, 2), {
     status,
@@ -106,22 +112,33 @@ const launchResponse = async ({ request, cwd, entryPath }: CompanionRequestInput
   return jsonResponse({ value: result, status: result.ok ? 200 : 500 });
 };
 
+const routes: CompanionRoute[] = [
+  {
+    path: "/api/state",
+    handler: ({ cwd, url }) =>
+      jsonResponse({
+        value: statePayload(safeCwd(cwd, url.searchParams.get("cwd") ?? undefined)),
+      }),
+  },
+  {
+    path: "/api/handoff",
+    method: "POST",
+    handler: handoffResponse,
+  },
+  {
+    path: "/api/launch",
+    method: "POST",
+    handler: launchResponse,
+  },
+];
+
+const routeMatches = ({ path, method }: CompanionRoute, { request, url }: CompanionRequestInput) =>
+  path === url.pathname && (!method || method === request.method);
+
 export const handleCompanionRequest = async (input: CompanionRequestInput) => {
-  const { request, url, cwd } = input;
+  const route = routes.find((candidate) => routeMatches(candidate, input));
 
-  if (url.pathname === "/api/state") {
-    return jsonResponse({
-      value: statePayload(safeCwd(cwd, url.searchParams.get("cwd") ?? undefined)),
-    });
-  }
-
-  if (url.pathname === "/api/handoff" && request.method === "POST") {
-    return handoffResponse(input);
-  }
-
-  if (url.pathname === "/api/launch" && request.method === "POST") {
-    return launchResponse(input);
-  }
-
-  return jsonResponse({ value: { error: "Not found" }, status: 404 });
+  return route
+    ? route.handler(input)
+    : jsonResponse({ value: { error: "Not found" }, status: 404 });
 };

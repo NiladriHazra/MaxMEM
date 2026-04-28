@@ -24,6 +24,11 @@ interface PromptChoiceInput {
   cwd: string;
 }
 
+interface ChoiceHandlerInput {
+  agent: Agent;
+  cwd: string;
+}
+
 const renderBanner = ({ agent, cwd }: BannerInput) => {
   const git = getGitContext({ cwd });
   const capsule = getLatestCapsule({ repoRoot: git.repoRoot, branch: git.branch });
@@ -48,14 +53,8 @@ const readChoice = async () => {
   return (await ask({ prompt: "maxMEM> " })).toLowerCase();
 };
 
-const handleChoice = async ({ agent, cwd }: PromptChoiceInput) => {
-  const choice = await readChoice();
-
-  if (choice === "q") {
-    return false;
-  }
-
-  if (choice === "h") {
+const choiceHandlers = {
+  h: ({ agent, cwd }: ChoiceHandlerInput) => {
     const capsule = createCapsule({
       agent,
       cwd,
@@ -63,9 +62,13 @@ const handleChoice = async ({ agent, cwd }: PromptChoiceInput) => {
     });
     console.log(renderCapsule({ capsule }));
     return true;
-  }
-
-  if (choice === "s") {
+  },
+  i: ({ cwd }: ChoiceHandlerInput) => {
+    console.log(getInjectionContext({ cwd }) || "No handoff capsule found for this repo.");
+    return true;
+  },
+  q: () => false,
+  s: async ({ agent, cwd }: ChoiceHandlerInput) => {
     const options = await selectExportOptions();
     const capsule = createCapsule({
       agent,
@@ -75,21 +78,22 @@ const handleChoice = async ({ agent, cwd }: PromptChoiceInput) => {
     });
     console.log(renderCapsule({ capsule, options }));
     return true;
-  }
-
-  if (choice === "i") {
-    console.log(getInjectionContext({ cwd }) || "No handoff capsule found for this repo.");
-    return true;
-  }
-
-  if (choice === "v") {
+  },
+  v: ({ cwd }: ChoiceHandlerInput) => {
     const git = getGitContext({ cwd });
     const capsule = getLatestCapsule({ repoRoot: git.repoRoot, branch: git.branch });
     console.log(capsule ? renderCapsule({ capsule }) : "No handoff capsule found for this repo.");
     return true;
-  }
+  },
+};
 
-  return true;
+const isChoice = (choice: string): choice is keyof typeof choiceHandlers =>
+  choice in choiceHandlers;
+
+const handleChoice = async (input: PromptChoiceInput) => {
+  const choice = await readChoice();
+
+  return isChoice(choice) ? choiceHandlers[choice](input) : true;
 };
 
 export const runWrapper = async ({ agent, args, cwd }: RunWrapperInput) => {

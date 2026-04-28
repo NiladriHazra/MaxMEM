@@ -31,7 +31,7 @@ interface CommandInput {
 }
 
 interface AgentCommandInput {
-  command: string;
+  agent: Agent;
   args: string[];
 }
 
@@ -40,6 +40,13 @@ interface ArgsInput {
 }
 
 const entryPath = resolve(process.argv[1] ?? fileURLToPath(import.meta.url));
+const helpCommands = new Set(["help", "--help", "-h"]);
+const hookInstallers = {
+  all: installAllHooks,
+  claude: installClaudeHooks,
+  codex: installCodexHooks,
+  opencode: installOpenCodePlugin,
+};
 
 const printHelp = () => {
   console.log(
@@ -65,117 +72,115 @@ const printHelp = () => {
   );
 };
 
+const isHookInstaller = (target: string): target is keyof typeof hookInstallers =>
+  target in hookInstallers;
+
 const installHooks = ({ args }: ArgsInput) => {
   const target = args.at(0) ?? "all";
-  const messages =
-    target === "codex"
-      ? installCodexHooks({ entryPath })
-      : target === "claude"
-        ? installClaudeHooks({ entryPath })
-        : target === "opencode"
-          ? installOpenCodePlugin({ entryPath })
-          : installAllHooks({ entryPath });
+  const installer = isHookInstaller(target) ? hookInstallers[target] : hookInstallers.all;
+  const messages = installer({ entryPath });
 
   messages.map((message) => console.log(message));
 };
 
-const runAgent = async ({ command, args }: AgentCommandInput) => {
-  if (!isAgent(command)) {
-    printHelp();
-    return 1;
-  }
-
-  return runWrapper({ agent: command as Agent, args, cwd: process.cwd() });
-};
+const runAgent = async ({ agent, args }: AgentCommandInput) =>
+  runWrapper({ agent, args, cwd: process.cwd() });
 
 const runHook = async ({ args }: ArgsInput) => {
   const hook = args.at(0);
-  const sessionStartAgent = hook ? agentBySessionStartHook(hook) : undefined;
-  const stopAgent = hook ? agentByStopHook(hook) : undefined;
+  const dispatch = [
+    {
+      agent: hook ? agentBySessionStartHook(hook) : undefined,
+      handler: handleSessionStartHook,
+    },
+    {
+      agent: hook ? agentByStopHook(hook) : undefined,
+      handler: handleStopHook,
+    },
+  ].find(({ agent }) => agent);
 
-  if (sessionStartAgent) {
-    await handleSessionStartHook({ agent: sessionStartAgent });
-    return;
-  }
-
-  if (stopAgent) {
-    await handleStopHook({ agent: stopAgent });
-  }
+  return dispatch?.agent ? dispatch.handler({ agent: dispatch.agent }) : undefined;
 };
+
+const statusLineHandlers = {
+  claude: handleClaudeStatusLine,
+};
+
+const isStatusLineHandler = (target: string): target is keyof typeof statusLineHandlers =>
+  target in statusLineHandlers;
 
 const runStatusLine = async ({ args }: ArgsInput) => {
-  if (args.at(0) === "claude") {
-    await handleClaudeStatusLine();
-  }
+  const target = args.at(0) ?? "";
+
+  return isStatusLineHandler(target) ? statusLineHandlers[target]() : undefined;
 };
+
+const commandHandlers = {
+  companion: async ({ args }: ArgsInput) => {
+    await runCompanionCommand({ args, cwd: process.cwd(), entryPath });
+    return 0;
+  },
+  handoff: async ({ args }: ArgsInput) => {
+    await runHandoffCommand({ args, cwd: process.cwd() });
+    return 0;
+  },
+  hook: async ({ args }: ArgsInput) => {
+    await runHook({ args });
+    return 0;
+  },
+  inject: () => {
+    console.log(
+      getInjectionContext({ cwd: process.cwd() }) || "No maxMEM handoff found for this repo.",
+    );
+    return 0;
+  },
+  "install-hooks": ({ args }: ArgsInput) => {
+    installHooks({ args });
+    return 0;
+  },
+  inspect: ({ args }: ArgsInput) => {
+    runInspectCommand({ args, cwd: process.cwd() });
+    return 0;
+  },
+  launch: ({ args }: ArgsInput) => {
+    runLaunchCommand({ args, cwd: process.cwd(), entryPath });
+    return 0;
+  },
+  mcp: async () => {
+    await runMcpServer();
+    return 0;
+  },
+  setup: ({ args }: ArgsInput) => {
+    runSetupCommand({ args, entryPath });
+    return 0;
+  },
+  status: ({ args }: ArgsInput) => {
+    showStatus({ cwd: process.cwd(), verbose: hasFlag({ args, name: "verbose" }) });
+    return 0;
+  },
+  statusline: async ({ args }: ArgsInput) => {
+    await runStatusLine({ args });
+    return 0;
+  },
+};
+
+const isCommandHandler = (command: string): command is keyof typeof commandHandlers =>
+  command in commandHandlers;
 
 const main = async ({ command, args }: CommandInput) => {
   ensureAutoSetup({ command, entryPath });
 
-  if (!command || command === "help" || command === "--help" || command === "-h") {
+  if (!command || helpCommands.has(command)) {
     printHelp();
     return 0;
   }
 
   if (isAgent(command)) {
-    return runAgent({ command, args });
+    return runAgent({ agent: command as Agent, args });
   }
 
-  if (command === "handoff") {
-    await runHandoffCommand({ args, cwd: process.cwd() });
-    return 0;
-  }
-
-  if (command === "inspect") {
-    runInspectCommand({ args, cwd: process.cwd() });
-    return 0;
-  }
-
-  if (command === "launch") {
-    runLaunchCommand({ args, cwd: process.cwd(), entryPath });
-    return 0;
-  }
-
-  if (command === "companion") {
-    await runCompanionCommand({ args, cwd: process.cwd(), entryPath });
-    return 0;
-  }
-
-  if (command === "mcp") {
-    await runMcpServer();
-    return 0;
-  }
-
-  if (command === "inject") {
-    console.log(
-      getInjectionContext({ cwd: process.cwd() }) || "No maxMEM handoff found for this repo.",
-    );
-    return 0;
-  }
-
-  if (command === "install-hooks") {
-    installHooks({ args });
-    return 0;
-  }
-
-  if (command === "setup") {
-    runSetupCommand({ args, entryPath });
-    return 0;
-  }
-
-  if (command === "hook") {
-    await runHook({ args });
-    return 0;
-  }
-
-  if (command === "statusline") {
-    await runStatusLine({ args });
-    return 0;
-  }
-
-  if (command === "status") {
-    showStatus({ cwd: process.cwd(), verbose: hasFlag({ args, name: "verbose" }) });
-    return 0;
+  if (isCommandHandler(command)) {
+    return commandHandlers[command]({ args });
   }
 
   printHelp();
