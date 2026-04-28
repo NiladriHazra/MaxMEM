@@ -165,7 +165,7 @@ const marketplaceWithMaxmem = () => {
           path: "./plugins/maxmem",
         },
         policy: {
-          installation: "AVAILABLE",
+          installation: "INSTALLED_BY_DEFAULT",
           authentication: "ON_INSTALL",
         },
         category: "Productivity",
