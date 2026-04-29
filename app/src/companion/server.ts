@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
 import { hasFlag, optionValue } from "../cli/options";
 import { handleCompanionRequest } from "./api";
 import { companionHtml } from "./view";
@@ -16,6 +17,9 @@ interface BrowserInput {
 const openBrowser = ({ url }: BrowserInput) =>
   process.platform === "darwin" && spawnSync("open", [url], { stdio: "ignore" });
 
+const companionBackground = () =>
+  resolve(import.meta.dir, "..", "..", "..", "docs", "companion", "ink-dashboard-bg.png");
+
 export const startCompanionServer = async ({ args, cwd, entryPath }: CompanionServerInput) => {
   const hostname = "127.0.0.1";
   const port = Number(optionValue({ args, name: "port" }) ?? "3838");
@@ -28,6 +32,12 @@ export const startCompanionServer = async ({ args, cwd, entryPath }: CompanionSe
       if (url.pathname === "/") {
         return new Response(companionHtml(), {
           headers: { "content-type": "text/html; charset=utf-8" },
+        });
+      }
+
+      if (url.pathname === "/assets/ink-dashboard-bg.png") {
+        return new Response(Bun.file(companionBackground()), {
+          headers: { "content-type": "image/png" },
         });
       }
 

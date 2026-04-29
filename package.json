@@ -1,6 +1,6 @@
 {
   "name": "@bytehumi/maxmem",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Local-first handoff capsules for Codex, Claude Code, and OpenCode.",
   "keywords": [
     "agents",
@@ -30,7 +30,8 @@
     "app/scripts/postinstall.cjs",
     "README.md",
     "LICENSE",
-    "docs/readme"
+    "docs/readme",
+    "docs/companion"
   ],
   "type": "module",
   "publishConfig": {

@@ -186,7 +186,7 @@ Codex receives the same handoff behavior through hooks, MCP, and the local comma
 
 ## Companion UI
 
-`maxmem companion` starts a local browser UI for the current repository. It shows recent capsules, the latest rendered handoff, task state, project memory, read history, repository status, and launch buttons for Codex, Claude Code, and OpenCode.
+`maxmem companion` starts a local browser UI for the current repository. It shows recent capsules, the latest rendered handoff, task state, project memory, read history, repository status, and launch buttons for Codex, Claude Code, and OpenCode. The left capsule rail, middle handoff rail, and right control rail scroll independently inside a dark ink-wash workspace.
 
 It is intentionally local. It does not need a cloud account, hosted database, or remote sync service.
 

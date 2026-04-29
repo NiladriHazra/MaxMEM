@@ -13,7 +13,7 @@ export const companionHtml = () => `<!doctype html>
   </head>
   <body>
     <main>
-      <aside>
+      <aside class="rail left-rail">
         <div class="brand">
           <h1>MaxMEM</h1>
           <span class="muted">companion</span>
@@ -22,13 +22,13 @@ export const companionHtml = () => `<!doctype html>
         <h2>Recent Capsules</h2>
         <div id="capsules" class="capsule-list"></div>
       </aside>
-      <section class="work">
+      <section class="work middle-rail">
         <h2>Latest Handoff</h2>
         <div id="summary" class="repo"></div>
         <div id="taskState" class="task-grid"></div>
         <pre id="capsuleText" class="capsule-text"></pre>
       </section>
-      <aside class="controls">
+      <aside class="controls rail right-rail">
         <h2>Create Handoff</h2>
         <div class="stack">
           <select id="sourceAgent">
