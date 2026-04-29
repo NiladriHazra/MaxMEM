@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>Codex hooks</code> - <code>Claude slash commands</code> - <code>OpenCode plugin</code> - <code>MCP server</code> - <code>project memory</code> - <code>local companion</code>
+  <code>Codex hooks</code> - <code>Codex skill + MCP</code> - <code>Claude slash commands</code> - <code>OpenCode plugin</code> - <code>project memory</code> - <code>local companion</code>
 </p>
 
 ## Why MaxMEM Exists
@@ -100,12 +100,12 @@ bun run dev status
 
 ## What Setup Installs
 
-| Target          | What MaxMEM wires                                                       |
-| --------------- | ----------------------------------------------------------------------- |
-| Codex           | `SessionStart` and `Stop` hooks, MCP config, and a local command plugin |
-| Claude Code     | hooks, status line, MCP config, and `/maxmem-*` slash commands          |
-| OpenCode        | plugin hooks, MCP config, and `maxmem-*` commands                       |
-| Desktop/browser | local companion UI for viewing capsules and launching handoffs          |
+| Target          | What MaxMEM wires                                                     |
+| --------------- | --------------------------------------------------------------------- |
+| Codex           | `SessionStart` and `Stop` hooks, MCP config, and a local MaxMEM skill |
+| Claude Code     | hooks, status line, MCP config, and `/maxmem-*` slash commands        |
+| OpenCode        | plugin hooks, MCP config, and `maxmem-*` commands                     |
+| Desktop/browser | local companion UI for viewing capsules and launching handoffs        |
 
 Common commands after setup:
 
@@ -168,21 +168,22 @@ maxmem-claude
 maxmem-opencode
 ```
 
-Codex command plugin entries:
+Codex:
 
 ```text
-/maxmem
-/maxmem-handoff
-/maxmem-memory
-/maxmem-companion
-/maxmem-codex
-/maxmem-claude
-/maxmem-opencode
+maxmem handoff
+maxmem memory
+maxmem companion
+maxmem launch claude
+/maxmem/handoff
+/maxmem/memory
+/maxmem/companion
+/maxmem/claude
 ```
 
 On macOS, launch shortcuts opened from VS Code or Cursor create a new integrated terminal in the active workspace. From Terminal.app they open a new Terminal window.
 
-Codex receives the same handoff behavior through hooks, MCP, and the local command plugin.
+Codex CLI v0.125 only autocompletes built-in slash commands in the `/` picker. MaxMEM is still wired into Codex through hooks, MCP tools, and a local skill visible from `/skills`; slash-like inputs with a nested slash such as `/maxmem/handoff` are passed to the model and handled by the MaxMEM skill.
 
 ## Companion UI
 
