@@ -184,7 +184,7 @@ const codexIndexCommand = () =>
 
 const codexPluginManifest = () => ({
   name: "maxmem",
-  version: "0.1.10",
+  version: "0.1.11",
   description: "MaxMEM handoff commands for Codex.",
   author: {
     name: "MaxMEM",
@@ -251,6 +251,19 @@ const codexMarketplaceConfigBlock = () =>
     `source = ${JSON.stringify(homedir())}`,
   ].join("\n");
 
+const codexPluginConfigBlock = () => ['[plugins."maxmem@local"]', "enabled = true"].join("\n");
+
+const codexConfigWithMaxmemPlugin = () =>
+  upsertTomlBlock({
+    content: upsertTomlBlock({
+      content: codexConfig(),
+      header: "marketplaces.local",
+      block: codexMarketplaceConfigBlock(),
+    }),
+    header: 'plugins."maxmem@local"',
+    block: codexPluginConfigBlock(),
+  });
+
 const installClaudeCommands = ({ entryPath }: InstallInput) => {
   mkdirSync(claudeCommandsDir(), { recursive: true });
   launchAgents.map((agent) =>
@@ -286,14 +299,7 @@ const installCodexCommands = ({ entryPath }: InstallInput) => {
   writeText(join(codexPluginCommandsDir(), "maxmem.md"), codexIndexCommand());
   writeJson(codexPluginManifestPath(), codexPluginManifest());
   writeJson(codexMarketplacePath(), marketplaceWithMaxmem());
-  writeText(
-    codexConfigPath(),
-    upsertTomlBlock({
-      content: codexConfig(),
-      header: "marketplaces.local",
-      block: codexMarketplaceConfigBlock(),
-    }),
-  );
+  writeText(codexConfigPath(), codexConfigWithMaxmemPlugin());
 };
 
 export const installAgentCommands = ({ entryPath }: InstallInput) => {
