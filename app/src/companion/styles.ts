@@ -29,9 +29,8 @@ body {
   margin: 0;
   min-height: 100%;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.42) 48%, rgba(0, 0, 0, 0.7)),
-    radial-gradient(circle at 76% 26%, rgba(215, 200, 169, 0.12), transparent 24rem),
-    url("/assets/ink-dashboard-bg.png") center / cover fixed,
+    radial-gradient(circle at 76% 26%, rgba(215, 200, 169, 0.09), transparent 24rem),
+    linear-gradient(115deg, #050505 0%, #10100e 48%, #050505 100%),
     #050505;
   color: var(--paper);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -180,6 +179,25 @@ button:hover {
     rgba(0, 0, 0, 0.58);
   min-width: 0;
   padding: 24px 28px;
+  position: relative;
+  isolation: isolate;
+}
+
+.work::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.7)),
+    url("/assets/ink-dashboard-bg.png") center / cover no-repeat;
+  opacity: 0.24;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.work > * {
+  position: relative;
+  z-index: 1;
 }
 
 .task-grid {

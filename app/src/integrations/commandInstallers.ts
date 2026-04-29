@@ -184,7 +184,7 @@ const codexIndexCommand = () =>
 
 const codexPluginManifest = () => ({
   name: "maxmem",
-  version: "0.1.9",
+  version: "0.1.10",
   description: "MaxMEM handoff commands for Codex.",
   author: {
     name: "MaxMEM",

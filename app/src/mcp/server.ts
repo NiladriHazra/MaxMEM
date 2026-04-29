@@ -5,7 +5,7 @@ import { registerMaxmemTools } from "./tools";
 export const createMcpServer = () => {
   const server = new McpServer({
     name: "maxmem",
-    version: "0.1.9",
+    version: "0.1.10",
   });
 
   registerMaxmemTools({ server });
