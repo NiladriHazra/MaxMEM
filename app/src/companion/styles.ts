@@ -208,12 +208,24 @@ button:hover {
 }
 
 .task-panel {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: linear-gradient(180deg, rgba(244, 239, 226, 0.08), rgba(244, 239, 226, 0.035));
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26);
   min-height: 92px;
   padding: 12px;
+  max-height: 220px;
+  overflow: hidden;
+  transition: max-height 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.task-panel.is-expanded {
+  max-height: none;
+}
+
+.task-panel.is-fits {
+  max-height: none;
 }
 
 .task-panel:first-child {
@@ -225,6 +237,56 @@ button:hover {
   font-size: 11px;
   margin-bottom: 9px;
   text-transform: uppercase;
+  padding-right: 44px;
+}
+
+.icon-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(244, 239, 226, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+  font: inherit;
+  padding: 0;
+  min-height: auto;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.icon-toggle:hover {
+  border-color: var(--line-strong);
+  background: rgba(244, 239, 226, 0.10);
+  color: var(--accent-strong);
+}
+
+.icon-toggle:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid rgba(215, 200, 169, 0.18);
+  outline-offset: 2px;
+}
+
+.icon-toggle svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.task-panel.is-expanded .icon-toggle svg,
+.memory-row.is-expanded .icon-toggle svg {
+  transform: rotate(180deg);
+}
+
+.task-panel.is-fits .icon-toggle,
+.memory-row.is-fits .icon-toggle {
+  display: none;
 }
 
 .mini-list {
@@ -233,6 +295,19 @@ button:hover {
   font-size: 12px;
   gap: 7px;
   line-height: 1.45;
+  position: relative;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.mini-list > div {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.task-panel:not(.is-expanded):not(.is-fits) .mini-list {
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 36px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 36px), transparent 100%);
 }
 
 .empty {
@@ -318,10 +393,17 @@ textarea {
 .read-list {
   display: grid;
   gap: 8px;
+  min-width: 0;
+}
+
+.memory-list > *,
+.read-list > * {
+  min-width: 0;
 }
 
 .memory-row,
 .read-row {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: linear-gradient(180deg, rgba(244, 239, 226, 0.08), rgba(244, 239, 226, 0.035));
@@ -329,6 +411,33 @@ textarea {
   font-size: 12px;
   line-height: 1.45;
   padding: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.memory-row span,
+.read-row {
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.memory-row {
+  max-height: 110px;
+  overflow: hidden;
+  transition: max-height 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  padding-right: 46px;
+}
+
+.memory-row.is-expanded,
+.memory-row.is-fits {
+  max-height: none;
+}
+
+.memory-row:not(.is-expanded):not(.is-fits) span {
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 22px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 22px), transparent 100%);
 }
 
 .memory-row strong {

@@ -84,10 +84,24 @@ const renderCapsules = (capsules) => {
   );
 };
 
+const chevronSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
+const makeToggleButton = () => {
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "icon-toggle";
+  toggle.dataset.toggle = "expand";
+  toggle.setAttribute("aria-label", "Expand");
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.innerHTML = chevronSvg;
+  return toggle;
+};
+
 const listPanel = (title, values, empty) => {
   const panel = document.createElement("section");
   const heading = document.createElement("h3");
   const list = document.createElement("div");
+  const toggle = makeToggleButton();
 
   panel.className = "task-panel";
   heading.textContent = title;
@@ -102,9 +116,29 @@ const listPanel = (title, values, empty) => {
         })
       : [emptyNode(empty)]),
   );
-  panel.append(heading, list);
+  panel.append(heading, toggle, list);
 
   return panel;
+};
+
+const measurePanels = (root) => {
+  root.querySelectorAll(".task-panel").forEach((panel) => {
+    panel.classList.remove("is-fits");
+    const list = panel.querySelector(".mini-list");
+    if (!list) return;
+    if (list.scrollHeight <= 168) {
+      panel.classList.add("is-fits");
+    }
+  });
+};
+
+const measureMemoryRows = (root) => {
+  root.querySelectorAll(".memory-row").forEach((row) => {
+    row.classList.remove("is-fits");
+    if (row.scrollHeight <= 110) {
+      row.classList.add("is-fits");
+    }
+  });
 };
 
 const renderTaskState = (latest) => {
@@ -118,6 +152,8 @@ const renderTaskState = (latest) => {
     listPanel("Open questions", taskState?.openQuestions, "No open questions"),
     listPanel("Risks", taskState?.risks, "No risks recorded"),
   );
+
+  requestAnimationFrame(() => measurePanels(root));
 };
 
 const renderMemory = (memory) => {
@@ -125,16 +161,20 @@ const renderMemory = (memory) => {
     const row = document.createElement("div");
     const kind = document.createElement("strong");
     const content = document.createElement("span");
+    const toggle = makeToggleButton();
 
     row.className = "memory-row";
+    row.dataset.kind = record.kind || "note";
     kind.textContent = record.kind;
     content.textContent = record.content;
-    row.append(kind, content);
+    row.append(kind, toggle, content);
 
     return row;
   });
 
-  byId("memory").replaceChildren(...(rows.length ? rows : [emptyNode("No project memory")]));
+  const root = byId("memory");
+  root.replaceChildren(...(rows.length ? rows : [emptyNode("No project memory")]));
+  requestAnimationFrame(() => measureMemoryRows(root));
 };
 
 const renderReads = (reads) => {
@@ -176,8 +216,30 @@ const postAction = (url, value) =>
 
 document.addEventListener("click", async (event) => {
   const target = event.target instanceof HTMLElement ? event.target : undefined;
-  const launch = target?.dataset.launch;
-  const capsuleIndex = target?.closest(".capsule")?.dataset.index;
+  if (!target) return;
+
+  const toggleButton = target.closest("[data-toggle='expand']");
+  if (toggleButton) {
+    event.preventDefault();
+    const container = toggleButton.closest(".task-panel, .memory-row");
+    if (container) {
+      const isMemory = container.classList.contains("memory-row");
+      const inner = container.querySelector(isMemory ? "span" : ".mini-list");
+      const buffer = isMemory ? 36 : 64;
+      const expanded = container.classList.toggle("is-expanded");
+      if (expanded && inner) {
+        container.style.maxHeight = inner.scrollHeight + buffer + "px";
+      } else {
+        container.style.maxHeight = "";
+      }
+      toggleButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+      toggleButton.setAttribute("aria-label", expanded ? "Collapse" : "Expand");
+    }
+    return;
+  }
+
+  const launch = target.dataset.launch;
+  const capsuleIndex = target.closest(".capsule")?.dataset.index;
 
   if (launch) {
     await postAction("/api/launch", {
